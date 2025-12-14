@@ -1,6 +1,9 @@
 include .env
 
-.PHONY: create-migration migrate-up migrate-down sqlc
+.PHONY: run create-migration migrate-up migrate-down sqlc
+
+run: 
+	go run ./cmd/grpc/main.go
 
 create-migration:
 	migrate create -ext sql -dir migrations -seq $(name)
