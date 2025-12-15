@@ -5,7 +5,9 @@ import (
 	"log"
 	"net"
 
+	"buf.build/go/protovalidate"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/interceptor"
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
 	grpchandler "github.com/khoihuynh300/go-microservice/user-service/internal/handler/grpc"
@@ -15,6 +17,7 @@ import (
 	"github.com/khoihuynh300/go-microservice/user-service/internal/service"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func initDB(ctx context.Context, dbURL string) *pgxpool.Pool {
@@ -46,8 +49,20 @@ func main() {
 
 	userHandler := grpchandler.NewUserHandler(authService)
 
-	grpcServer := grpc.NewServer()
+	validator, err := protovalidate.New()
+	if err != nil {
+		log.Fatal("failed to initialize validator:", err)
+	}
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interceptor.RecoveryUnaryInterceptor(),
+			interceptor.LoggingUnaryInterceptor(),
+			interceptor.ValidationUnaryInterceptor(validator),
+		),
+	)
 	userpb.RegisterUserServiceServer(grpcServer, userHandler)
+
+	reflection.Register(grpcServer)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

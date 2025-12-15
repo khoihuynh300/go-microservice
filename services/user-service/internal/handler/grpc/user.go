@@ -21,7 +21,7 @@ func NewUserHandler(authService *service.AuthService) *UserHandler {
 }
 
 func (s *UserHandler) Register(ctx context.Context, req *userpb.RegisterRequest) (*userpb.RegisterResponse, error) {
-	log.Println("called Register gRPC method")
+
 	registerReq := &request.RegisterRequest{
 		Email:    req.Email,
 		Password: req.Password,
