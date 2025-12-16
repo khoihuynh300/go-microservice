@@ -12,6 +12,7 @@ import (
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
+	"go.uber.org/zap"
 )
 
 type AuthService struct {
@@ -19,6 +20,7 @@ type AuthService struct {
 	refreshTokenRepo repository.RefreshTokenRepository
 	passwordHasher   passwordhasher.PasswordHasher
 	jwtService       *jwtprovider.JwtService
+	logger           *zap.Logger
 }
 
 func NewAuthService(
@@ -26,18 +28,21 @@ func NewAuthService(
 	refreshTokenRepo repository.RefreshTokenRepository,
 	passwordHasher passwordhasher.PasswordHasher,
 	jwtService *jwtprovider.JwtService,
+	logger *zap.Logger,
 ) *AuthService {
 	return &AuthService{
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		passwordHasher:   passwordHasher,
 		jwtService:       jwtService,
+		logger:           logger,
 	}
 }
 
 func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest) (*domain.User, error) {
 	existedUser, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
+		s.logger.Error("get user error", zap.Error(err))
 		return nil, err
 	}
 	if existedUser != nil {
@@ -57,6 +62,7 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
+		s.logger.Error("create user error", zap.Error(err))
 		return nil, err
 	}
 
@@ -66,6 +72,7 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*domain.User, string, string, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
+		s.logger.Error("get user error", zap.Error(err))
 		return nil, "", "", err
 	}
 	if user == nil {

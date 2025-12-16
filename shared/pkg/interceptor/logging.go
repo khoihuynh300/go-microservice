@@ -2,24 +2,28 @@ package interceptor
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-func LoggingUnaryInterceptor() grpc.UnaryServerInterceptor {
+func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
-		log.Printf("started unary call: %s", info.FullMethod)
+		logger.Info("unary request", zap.String("method", info.FullMethod))
 		start := time.Now()
 		resp, err := handler(ctx, req)
 
-		log.Printf("method=%s duration=%s err=%v", info.FullMethod, time.Since(start), err)
+		logger.Info("unary response",
+			zap.String("method", info.FullMethod),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
 		return resp, err
 	}
 }

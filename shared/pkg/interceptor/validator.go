@@ -18,11 +18,7 @@ func ValidationUnaryInterceptor(validator protovalidate.Validator) grpc.UnarySer
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		if err := validator.Validate(req.(proto.Message)); err != nil {
-			return nil, status.Errorf(
-				codes.InvalidArgument,
-				"validation failed: %v",
-				err,
-			)
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
 
 		return handler(ctx, req)

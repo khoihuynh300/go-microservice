@@ -2,12 +2,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"buf.build/go/protovalidate"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/interceptor"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
 	grpchandler "github.com/khoihuynh300/go-microservice/user-service/internal/handler/grpc"
@@ -15,62 +21,119 @@ import (
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/service"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
-func initDB(ctx context.Context, dbURL string) *pgxpool.Pool {
-	pool, err := pgxpool.New(ctx, dbURL)
-	if err != nil {
-		log.Fatal("unable to connect db", err)
+func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
 	}
-	if err := pool.Ping(ctx); err != nil {
-		log.Fatal("cannot ping db", err)
-	}
-	return pool
 }
 
-func main() {
-	ctx := context.Background()
+func run() error {
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
 	cfg := config.LoadConfig()
 
-	dbpool := initDB(ctx, cfg.DBUrl)
+	logger, err := zaplogger.New(cfg.ServiceName, cfg.Env)
+	if err != nil {
+		return err
+	}
+	defer logger.Sync()
+
+	dbpool, err := initDB(ctx, cfg.DBUrl)
+	if err != nil {
+		return fmt.Errorf("failed to init db: %w", err)
+	}
 	defer dbpool.Close()
 
 	hasher := passwordhasher.NewBcryptHasher(bcrypt.DefaultCost)
 	jwtService := jwtprovider.NewJwtService(cfg.JwtAccessSecret, cfg.AccessTokenTTL, cfg.JwtRefreshSecret, cfg.RefreshTokenTTL)
 
+	// repositories
 	userRepository := repository.NewUserRepository(dbpool)
 	refreshTokenRepository := repository.NewRefreshTokenRepository(dbpool)
 
-	authService := service.NewAuthService(userRepository, refreshTokenRepository, hasher, jwtService)
+	// services
+	authService := service.NewAuthService(userRepository, refreshTokenRepository, hasher, jwtService, logger)
 
+	// grpc handlers
+	healthHandler := health.NewServer()
 	userHandler := grpchandler.NewUserHandler(authService)
 
 	validator, err := protovalidate.New()
 	if err != nil {
-		log.Fatal("failed to initialize validator:", err)
+		return fmt.Errorf("failed to initialize validator: %w", err)
 	}
+
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			interceptor.RecoveryUnaryInterceptor(),
-			interceptor.LoggingUnaryInterceptor(),
+			interceptor.RecoveryUnaryInterceptor(logger),
+			interceptor.LoggingUnaryInterceptor(logger),
 			interceptor.ValidationUnaryInterceptor(validator),
 		),
 	)
+
+	// register grpc services
+	healthpb.RegisterHealthServer(grpcServer, healthHandler)
 	userpb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	reflection.Register(grpcServer)
+	if cfg.Env == "DEV" {
+		reflection.Register(grpcServer)
+	}
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	log.Println("user service listening on " + cfg.GRPCAddr)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatal(err)
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			logger.Error("failed to serve grpc server", zap.Error(err))
+		}
+	}()
+
+	logger.Info("user service listening on", zap.String("addr", cfg.GRPCAddr))
+	healthHandler.SetServingStatus(cfg.ServiceName, healthpb.HealthCheckResponse_SERVING)
+
+	<-ctx.Done()
+	logger.Info("shutdown signal received")
+	healthHandler.SetServingStatus(cfg.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
+
+	done := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		logger.Info("grpc server stopped gracefully")
+	case <-time.After(10 * time.Second):
+		logger.Warn("graceful shutdown timeout, force stop")
+		grpcServer.Stop()
 	}
+
+	return nil
+}
+
+func initDB(ctx context.Context, dbURL string) (*pgxpool.Pool, error) {
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		return nil, err
+	}
+	if err := pool.Ping(ctx); err != nil {
+		return nil, err
+	}
+	return pool, nil
 }

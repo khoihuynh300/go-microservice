@@ -3,15 +3,14 @@ package interceptor
 import (
 	"context"
 	"fmt"
-	"log"
-	"runtime/debug"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func RecoveryUnaryInterceptor() grpc.UnaryServerInterceptor {
+func RecoveryUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -30,11 +29,10 @@ func RecoveryUnaryInterceptor() grpc.UnaryServerInterceptor {
 					panicMsg = fmt.Sprintf("%v", x)
 				}
 
-				log.Printf(
-					"panic recovered: method=%s panic=%s\n%s",
-					info.FullMethod,
-					panicMsg,
-					debug.Stack(),
+				logger.Error("panic recovered",
+					zap.String("method", info.FullMethod),
+					zap.String("panic", panicMsg),
+					zap.Stack("stacktrace"),
 				)
 
 				err = status.Error(codes.Internal, "internal server error")
