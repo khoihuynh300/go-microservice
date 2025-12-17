@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain"
@@ -37,6 +40,9 @@ func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *domain.
 func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenStr string) (*domain.RefreshToken, error) {
 	row, err := r.queries.GetRefreshTokenByTokenHash(ctx, refreshTokenStr)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &domain.RefreshToken{

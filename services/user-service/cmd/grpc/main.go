@@ -51,7 +51,9 @@ func run() error {
 	}
 	defer logger.Sync()
 
-	dbpool, err := initDB(ctx, cfg.DBUrl)
+	dbCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	dbpool, err := initDB(dbCtx, cfg.DBUrl)
 	if err != nil {
 		return fmt.Errorf("failed to init db: %w", err)
 	}
@@ -79,8 +81,9 @@ func run() error {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptor.RecoveryUnaryInterceptor(logger),
-			interceptor.LoggingUnaryInterceptor(logger),
 			interceptor.ValidationUnaryInterceptor(validator),
+			interceptor.LoggingUnaryInterceptor(logger),
+			interceptor.ErrorHandlerInterceptor(logger),
 		),
 	)
 

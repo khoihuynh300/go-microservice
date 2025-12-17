@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"time"
 
+	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	"github.com/khoihuynh300/go-microservice/user-service/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
 )
 
 type AuthService struct {
@@ -42,11 +44,10 @@ func NewAuthService(
 func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest) (*domain.User, error) {
 	existedUser, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
-		s.logger.Error("get user error", zap.Error(err))
 		return nil, err
 	}
 	if existedUser != nil {
-		return nil, errors.New("email already exists")
+		return nil, apperr.New(apperr.CodeAlreadyExists, "Email already exists", codes.AlreadyExists)
 	}
 
 	hashedPassword, err := s.passwordHasher.Hash(req.Password)
@@ -62,29 +63,35 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
-		s.logger.Error("create user error", zap.Error(err))
 		return nil, err
 	}
 
+	s.logger.Info("Register success",
+		zap.String("user_id", user.ID.String()),
+	)
 	return user, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*domain.User, string, string, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
-		s.logger.Error("get user error", zap.Error(err))
 		return nil, "", "", err
 	}
 	if user == nil {
-		return nil, "", "", errors.New("invalid email or password")
+		s.logger.Warn("Login failed: invalid credentials")
+		return nil, "", "", apperr.ErrInvalidCredentials
 	}
 
 	if !s.passwordHasher.Compare(user.HashedPassword, req.Password) {
-		return nil, "", "", errors.New("invalid email or password")
+		s.logger.Warn("Login failed: invalid credentials")
+		return nil, "", "", apperr.ErrInvalidCredentials
 	}
 
 	if !user.IsActive() {
-		return nil, "", "", errors.New("user is inactive or banned")
+		s.logger.Warn("Login failed: account is inactive",
+			zap.String("user_id", user.ID.String()),
+		)
+		return nil, "", "", apperr.New(apperr.CodeUnauthorized, "Account is inactive", codes.PermissionDenied)
 	}
 
 	accessToken, refreshToken, err := s.generateTokenPair(ctx, user)
@@ -92,18 +99,28 @@ func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*do
 		return nil, "", "", err
 	}
 
+	s.logger.Info("Login success", zap.String("user_id", user.ID.String()))
 	return user, accessToken, refreshToken, nil
 }
 
 func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) (string, string, error) {
 	claims, err := s.jwtService.VerifyRefreshToken(refreshTokenStr)
 	if err != nil {
-		return "", "", errors.New("invalid refresh token")
+		if errors.Is(err, jwtprovider.ErrTokenExpired) {
+			return "", "", apperr.ErrTokenExpired
+		}
+		if errors.Is(err, jwtprovider.ErrTokenInvalid) {
+			return "", "", apperr.ErrTokenInvalid
+		}
+		return "", "", err
 	}
 
 	refreshTokenModel, err := s.refreshTokenRepo.FindByToken(ctx, hashRefreshToken(refreshTokenStr))
 	if err != nil {
-		return "", "", errors.New("invalid refresh token")
+		return "", "", err
+	}
+	if refreshTokenModel == nil {
+		return "", "", apperr.ErrTokenInvalid
 	}
 
 	userID := claims.UserID
@@ -112,14 +129,16 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		return "", "", err
 	}
 	if user == nil {
-		return "", "", errors.New("user not found")
+		return "", "", apperr.ErrTokenInvalid
 	}
 
 	if !user.IsActive() {
-		return "", "", errors.New("user is inactive or banned")
+		return "", "", apperr.New(apperr.CodeUnauthorized, "Account is inactive", codes.PermissionDenied)
 	}
 
-	s.refreshTokenRepo.DeleteByID(ctx, refreshTokenModel.ID)
+	if err := s.refreshTokenRepo.DeleteByID(ctx, refreshTokenModel.ID); err != nil {
+		return "", "", err
+	}
 
 	return s.generateTokenPair(ctx, user)
 }

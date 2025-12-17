@@ -2,7 +2,6 @@ package grpchandler
 
 import (
 	"context"
-	"log"
 
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
 	"github.com/khoihuynh300/go-microservice/user-service/dto/request"
@@ -21,7 +20,6 @@ func NewUserHandler(authService *service.AuthService) *UserHandler {
 }
 
 func (s *UserHandler) Register(ctx context.Context, req *userpb.RegisterRequest) (*userpb.RegisterResponse, error) {
-
 	registerReq := &request.RegisterRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -31,7 +29,6 @@ func (s *UserHandler) Register(ctx context.Context, req *userpb.RegisterRequest)
 
 	user, err := s.authService.Register(ctx, registerReq)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 

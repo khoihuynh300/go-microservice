@@ -26,6 +26,11 @@ type JwtService struct {
 	refresh_ttl    time.Duration
 }
 
+var (
+	ErrTokenExpired = errors.New("token expired")
+	ErrTokenInvalid = errors.New("token invalid")
+)
+
 func NewJwtService(accessSecret string, accessTTL time.Duration, refreshSecret string, refreshTTL time.Duration) *JwtService {
 	return &JwtService{
 		access_secret:  []byte(accessSecret),
@@ -70,46 +75,46 @@ func (s *JwtService) GenerateRefreshToken(userID string) (string, error) {
 }
 
 func (s *JwtService) VerifyAccessToken(tokenString string) (*AccessTokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &AccessTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &AccessTokenClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, ErrTokenInvalid
 		}
 		return s.access_secret, nil
 	})
 
 	if err != nil || !token.Valid {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, errors.New("expired token")
+			return nil, ErrTokenExpired
 		}
-		return nil, errors.New("invalid token")
+		return nil, ErrTokenInvalid
 	}
 
 	claims, ok := token.Claims.(*AccessTokenClaims)
 	if !ok {
-		return nil, errors.New("invalid token")
+		return nil, ErrTokenInvalid
 	}
 
 	return claims, nil
 }
 
 func (s *JwtService) VerifyRefreshToken(tokenString string) (*RefreshTokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &RefreshTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &RefreshTokenClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, ErrTokenInvalid
 		}
 		return s.refresh_secret, nil
 	})
 
 	if err != nil || !token.Valid {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, errors.New("expired token")
+			return nil, ErrTokenExpired
 		}
-		return nil, errors.New("invalid token")
+		return nil, ErrTokenInvalid
 	}
 
 	claims, ok := token.Claims.(*RefreshTokenClaims)
 	if !ok {
-		return nil, errors.New("invalid token")
+		return nil, ErrTokenInvalid
 	}
 
 	return claims, nil
