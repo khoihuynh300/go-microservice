@@ -16,16 +16,15 @@ import (
 )
 
 type userRepository struct {
-	db      *pgxpool.Pool
-	queries *sqlc.Queries
+	baseRepository
 }
-
-var _ repository.UserRepository = (*userRepository)(nil)
 
 func NewUserRepository(db *pgxpool.Pool) repository.UserRepository {
 	return &userRepository{
-		db:      db,
-		queries: sqlc.New(db),
+		baseRepository: baseRepository{
+			db: db,
+			q:  sqlc.New(db),
+		},
 	}
 }
 
@@ -41,7 +40,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 		UpdatedAt:      time.Now(),
 	}
 
-	result, err := r.queries.CreateUser(ctx, params)
+	result, err := r.queries(ctx).CreateUser(ctx, params)
 	if err != nil {
 		return err
 	}
@@ -54,7 +53,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
-	row, err := r.queries.GetUserByID(ctx, id)
+	row, err := r.queries(ctx).GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -67,7 +66,7 @@ func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Us
 }
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
-	row, err := r.queries.GetUserByEmail(ctx, email)
+	row, err := r.queries(ctx).GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -85,7 +84,7 @@ func (r *userRepository) List(ctx context.Context, status models.UserStatus, lim
 		Offset: int32(offset),
 	}
 
-	rows, err := r.queries.ListUsers(ctx, params)
+	rows, err := r.queries(ctx).ListUsers(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +97,7 @@ func (r *userRepository) List(ctx context.Context, status models.UserStatus, lim
 }
 
 func (r *userRepository) Count(ctx context.Context, status models.UserStatus) (int64, error) {
-	count, err := r.queries.CountUsers(ctx, string(status))
+	count, err := r.queries(ctx).CountUsers(ctx, string(status))
 	if err != nil {
 		return 0, err
 	}
@@ -122,7 +121,7 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 		},
 	}
 
-	result, err := r.queries.UpdateUser(ctx, params)
+	result, err := r.queries(ctx).UpdateUser(ctx, params)
 	if err != nil {
 		return err
 	}
@@ -137,7 +136,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, hashe
 		UpdatedAt:      time.Now(),
 	}
 
-	return r.queries.UpdateUserPassword(ctx, params)
+	return r.queries(ctx).UpdateUserPassword(ctx, params)
 }
 
 func (r *userRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status models.UserStatus) error {
@@ -146,7 +145,7 @@ func (r *userRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status 
 		Status:    string(status),
 		UpdatedAt: time.Now(),
 	}
-	return r.queries.UpdateUserStatus(ctx, params)
+	return r.queries(ctx).UpdateUserStatus(ctx, params)
 }
 
 func (r *userRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
@@ -154,7 +153,7 @@ func (r *userRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 		ID:        id,
 		DeletedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 	}
-	return r.queries.SoftDeleteUser(ctx, params)
+	return r.queries(ctx).SoftDeleteUser(ctx, params)
 }
 
 func (r *userRepository) mapToUser(row sqlc.User) *models.User {

@@ -71,65 +71,83 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		Status:         models.UserStatusPending,
 	}
 
-	if err := s.userRepo.Create(ctx, user); err != nil {
-		return nil, err
-	}
+	err = s.userRepo.WithinTransaction(ctx, func(ctx context.Context) error {
 
-	verifyToken := uuid.New().String()
-	err = s.registryTokenRepo.Create(
-		ctx,
-		hashToken(verifyToken),
-		user.ID,
-		time.Now().Add(s.cfg.RegistryTokenExpiry),
-	)
+		if err := s.userRepo.Create(ctx, user); err != nil {
+			return err
+		}
+
+		verifyToken := uuid.New().String()
+		err = s.registryTokenRepo.Create(
+			ctx,
+			hashToken(verifyToken),
+			user.ID,
+			time.Now().Add(s.cfg.RegistryTokenExpiry),
+		)
+		if err != nil {
+			return err
+		}
+		// TODO: publish event to send verification email with verifyToken
+
+		s.logger.Info("Register success",
+			zap.String("user_id", user.ID.String()),
+		)
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	// TODO: publish event to send verification email with verifyToken
 
-	s.logger.Info("Register success",
-		zap.String("user_id", user.ID.String()),
-	)
 	return user, nil
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	tokenHash := hashToken(token)
 
-	registryToken, err := s.registryTokenRepo.GetUserIdByToken(ctx, tokenHash)
-	if err != nil {
-		return err
-	}
-	if registryToken == nil {
-		return apperr.ErrTokenInvalid
-	}
-
-	if !registryToken.IsValid() {
-		if registryToken.IsExpired() {
-			return apperr.ErrTokenExpired
+	return s.userRepo.WithinTransaction(ctx, func(ctx context.Context) error {
+		registryToken, err := s.registryTokenRepo.GetByToken(ctx, tokenHash)
+		if err != nil {
+			return err
 		}
-		return apperr.ErrTokenInvalid
-	}
+		if registryToken == nil {
+			return apperr.ErrTokenInvalid
+		}
 
-	user, err := s.userRepo.FindByID(ctx, registryToken.UserID)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return apperr.ErrTokenInvalid
-	}
+		if !registryToken.IsValid() {
+			if registryToken.IsExpired() {
+				return apperr.ErrTokenExpired
+			}
+			return apperr.ErrTokenInvalid
+		}
 
-	user.Status = models.UserStatusActive
-	now := time.Now()
-	user.EmailVerifiedAt = &now
-	if err := s.userRepo.Update(ctx, user); err != nil {
-		return err
-	}
+		user, err := s.userRepo.FindByID(ctx, registryToken.UserID)
+		if err != nil {
+			return err
+		}
+		if user == nil {
+			return apperr.ErrTokenInvalid
+		}
 
-	s.logger.Info("Email verification success",
-		zap.String("user_id", user.ID.String()),
-	)
-	return s.registryTokenRepo.MarkTokenAsUsed(ctx, tokenHash)
+		user.Status = models.UserStatusActive
+		now := time.Now()
+		user.EmailVerifiedAt = &now
+		if err := s.userRepo.Update(ctx, user); err != nil {
+			return err
+		}
+
+		err = s.registryTokenRepo.MarkTokenAsUsed(ctx, tokenHash)
+		if err != nil {
+			return err
+		}
+
+		s.logger.Info("Email verification success",
+			zap.String("user_id", user.ID.String()),
+		)
+
+		return nil
+	})
 }
 
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error) {

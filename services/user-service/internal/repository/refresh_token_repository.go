@@ -8,6 +8,7 @@ import (
 )
 
 type RefreshTokenRepository interface {
+	Repository
 	Save(ctx context.Context, refreshToken *models.RefreshToken) error
 	FindByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error)
 	DeleteByID(ctx context.Context, id uuid.UUID) error

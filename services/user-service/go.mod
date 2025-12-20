@@ -13,6 +13,7 @@ require (
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.45.0
 	google.golang.org/grpc v1.77.0
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -46,7 +47,6 @@ require (
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251213004720-97cd9d5aeac2 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 replace github.com/khoihuynh300/go-microservice/shared => ../../shared

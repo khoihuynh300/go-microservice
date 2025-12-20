@@ -15,16 +15,15 @@ import (
 )
 
 type registryTokenRepository struct {
-	db      *pgxpool.Pool
-	queries *sqlc.Queries
+	baseRepository
 }
 
-var _ repository.RegistryTokenRepository = (*registryTokenRepository)(nil)
-
-func NewRegistryTokenRepository(db *pgxpool.Pool) *registryTokenRepository {
+func NewRegistryTokenRepository(db *pgxpool.Pool) repository.RegistryTokenRepository {
 	return &registryTokenRepository{
-		db:      db,
-		queries: sqlc.New(db),
+		baseRepository: baseRepository{
+			db: db,
+			q:  sqlc.New(db),
+		},
 	}
 }
 
@@ -37,11 +36,11 @@ func (r *registryTokenRepository) Create(ctx context.Context, token_hash string,
 		CreatedAt: time.Now(),
 	}
 
-	return r.queries.CreateRegistryToken(ctx, params)
+	return r.queries(ctx).CreateRegistryToken(ctx, params)
 }
 
-func (r *registryTokenRepository) GetUserIdByToken(ctx context.Context, token string) (*models.RegistryToken, error) {
-	row, err := r.queries.GetActiveRegistryToken(ctx, token)
+func (r *registryTokenRepository) GetByToken(ctx context.Context, token string) (*models.RegistryToken, error) {
+	row, err := r.queries(ctx).GetActiveRegistryToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -71,9 +70,9 @@ func (r *registryTokenRepository) GetUserIdByToken(ctx context.Context, token st
 }
 
 func (r *registryTokenRepository) InvalidateToken(ctx context.Context, token_hash string) error {
-	return r.queries.InvalidateRegistryTokens(ctx, uuid.Nil)
+	return r.queries(ctx).InvalidateRegistryTokens(ctx, uuid.Nil)
 }
 
 func (r *registryTokenRepository) MarkTokenAsUsed(ctx context.Context, token_hash string) error {
-	return r.queries.MarkRegistryTokenAsUsed(ctx, token_hash)
+	return r.queries(ctx).MarkRegistryTokenAsUsed(ctx, token_hash)
 }

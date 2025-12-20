@@ -15,16 +15,15 @@ import (
 )
 
 type refreshTokenRepository struct {
-	db      *pgxpool.Pool
-	queries *sqlc.Queries
+	baseRepository
 }
-
-var _ repository.RefreshTokenRepository = (*refreshTokenRepository)(nil)
 
 func NewRefreshTokenRepository(db *pgxpool.Pool) repository.RefreshTokenRepository {
 	return &refreshTokenRepository{
-		db:      db,
-		queries: sqlc.New(db),
+		baseRepository: baseRepository{
+			db: db,
+			q:  sqlc.New(db),
+		},
 	}
 }
 
@@ -37,11 +36,11 @@ func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *models.
 		CreatedAt: time.Now(),
 	}
 
-	return r.queries.CreateRefreshToken(ctx, params)
+	return r.queries(ctx).CreateRefreshToken(ctx, params)
 }
 
 func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error) {
-	row, err := r.queries.GetRefreshTokenByTokenHash(ctx, refreshTokenStr)
+	row, err := r.queries(ctx).GetRefreshTokenByTokenHash(ctx, refreshTokenStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -58,5 +57,5 @@ func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenSt
 }
 
 func (r *refreshTokenRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	return r.queries.DeleteRefreshTokenByID(ctx, id)
+	return r.queries(ctx).DeleteRefreshTokenByID(ctx, id)
 }
