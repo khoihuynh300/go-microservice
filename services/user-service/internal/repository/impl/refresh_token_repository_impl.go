@@ -1,4 +1,4 @@
-package repository
+package impl
 
 import (
 	"context"
@@ -10,7 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
-	"github.com/khoihuynh300/go-microservice/user-service/internal/domain"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 )
 
 type refreshTokenRepository struct {
@@ -18,14 +19,16 @@ type refreshTokenRepository struct {
 	queries *sqlc.Queries
 }
 
-func NewRefreshTokenRepository(db *pgxpool.Pool) RefreshTokenRepository {
+var _ repository.RefreshTokenRepository = (*refreshTokenRepository)(nil)
+
+func NewRefreshTokenRepository(db *pgxpool.Pool) repository.RefreshTokenRepository {
 	return &refreshTokenRepository{
 		db:      db,
 		queries: sqlc.New(db),
 	}
 }
 
-func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *domain.RefreshToken) error {
+func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *models.RefreshToken) error {
 	params := sqlc.CreateRefreshTokenParams{
 		ID:        uuid.New(),
 		UserID:    refreshToken.UserID,
@@ -37,7 +40,7 @@ func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *domain.
 	return r.queries.CreateRefreshToken(ctx, params)
 }
 
-func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenStr string) (*domain.RefreshToken, error) {
+func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error) {
 	row, err := r.queries.GetRefreshTokenByTokenHash(ctx, refreshTokenStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
@@ -45,7 +48,7 @@ func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenSt
 		}
 		return nil, err
 	}
-	return &domain.RefreshToken{
+	return &models.RefreshToken{
 		ID:        row.ID,
 		UserID:    row.UserID,
 		TokenHash: row.TokenHash,

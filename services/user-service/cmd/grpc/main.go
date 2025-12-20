@@ -17,7 +17,7 @@ import (
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
 	grpchandler "github.com/khoihuynh300/go-microservice/user-service/internal/handler/grpc"
-	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/repository/impl"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/service"
@@ -63,11 +63,20 @@ func run() error {
 	jwtService := jwtprovider.NewJwtService(cfg.JwtAccessSecret, cfg.AccessTokenTTL, cfg.JwtRefreshSecret, cfg.RefreshTokenTTL)
 
 	// repositories
-	userRepository := repository.NewUserRepository(dbpool)
-	refreshTokenRepository := repository.NewRefreshTokenRepository(dbpool)
+	userRepository := impl.NewUserRepository(dbpool)
+	refreshTokenRepository := impl.NewRefreshTokenRepository(dbpool)
+	registryTokenRepository := impl.NewRegistryTokenRepository(dbpool)
 
 	// services
-	authService := service.NewAuthService(userRepository, refreshTokenRepository, hasher, jwtService, logger)
+	authService := service.NewAuthService(
+		userRepository,
+		refreshTokenRepository,
+		registryTokenRepository,
+		hasher,
+		jwtService,
+		logger,
+		cfg,
+	)
 
 	// grpc handlers
 	healthHandler := health.NewServer()

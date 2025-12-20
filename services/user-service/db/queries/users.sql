@@ -22,7 +22,9 @@ SET
     avatar_url = $4,
     date_of_birth = $5,
     gender = $6,
-    updated_at = $7
+    updated_at = $7,
+    status = $8,
+    email_verified_at = $9
 WHERE id = $1
 RETURNING *;
 

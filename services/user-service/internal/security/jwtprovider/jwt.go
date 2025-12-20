@@ -5,17 +5,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/khoihuynh300/go-microservice/user-service/internal/domain"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 )
 
 type AccessTokenClaims struct {
-	UserID string
-	Email  string
 	jwt.RegisteredClaims
 }
 
 type RefreshTokenClaims struct {
-	UserID string
 	jwt.RegisteredClaims
 }
 
@@ -40,12 +37,10 @@ func NewJwtService(accessSecret string, accessTTL time.Duration, refreshSecret s
 	}
 }
 
-func (s *JwtService) GenerateAccessToken(user *domain.User) (string, error) {
+func (s *JwtService) GenerateAccessToken(user *models.User) (string, error) {
 	now := time.Now()
 
 	claims := AccessTokenClaims{
-		UserID: user.ID.String(),
-		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -61,7 +56,6 @@ func (s *JwtService) GenerateRefreshToken(userID string) (string, error) {
 	now := time.Now()
 
 	claims := RefreshTokenClaims{
-		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			IssuedAt:  jwt.NewNumericDate(now),

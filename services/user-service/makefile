@@ -14,5 +14,8 @@ migrate-up:
 migrate-down:
 	migrate -path migrations -database "$(DATABASE_URL)" down
 
+migrate-goto:
+	migrate -path migrations -database "$(DATABASE_URL)" goto $(version)
+
 sqlc:
 	sqlc generate

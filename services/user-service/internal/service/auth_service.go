@@ -7,47 +7,55 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
-	"github.com/khoihuynh300/go-microservice/user-service/dto/request"
-	"github.com/khoihuynh300/go-microservice/user-service/internal/domain"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
+	domainerr "github.com/khoihuynh300/go-microservice/user-service/internal/domain/errors"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
 )
 
 type AuthService struct {
-	userRepo         repository.UserRepository
-	refreshTokenRepo repository.RefreshTokenRepository
-	passwordHasher   passwordhasher.PasswordHasher
-	jwtService       *jwtprovider.JwtService
-	logger           *zap.Logger
+	userRepo          repository.UserRepository
+	refreshTokenRepo  repository.RefreshTokenRepository
+	registryTokenRepo repository.RegistryTokenRepository
+	passwordHasher    passwordhasher.PasswordHasher
+	jwtService        *jwtprovider.JwtService
+	logger            *zap.Logger
+	cfg               *config.Config
 }
 
 func NewAuthService(
 	userRepo repository.UserRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
+	registryTokenRepo repository.RegistryTokenRepository,
 	passwordHasher passwordhasher.PasswordHasher,
 	jwtService *jwtprovider.JwtService,
 	logger *zap.Logger,
+	cfg *config.Config,
 ) *AuthService {
 	return &AuthService{
-		userRepo:         userRepo,
-		refreshTokenRepo: refreshTokenRepo,
-		passwordHasher:   passwordHasher,
-		jwtService:       jwtService,
-		logger:           logger,
+		userRepo:          userRepo,
+		refreshTokenRepo:  refreshTokenRepo,
+		registryTokenRepo: registryTokenRepo,
+		passwordHasher:    passwordHasher,
+		jwtService:        jwtService,
+		logger:            logger,
+		cfg:               cfg,
 	}
 }
 
-func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest) (*domain.User, error) {
+func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest) (*models.User, error) {
 	existedUser, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, err
 	}
 	if existedUser != nil {
-		return nil, apperr.New(apperr.CodeAlreadyExists, "Email already exists", codes.AlreadyExists)
+		return nil, domainerr.ErrEmailAlreadyExists
 	}
 
 	hashedPassword, err := s.passwordHasher.Hash(req.Password)
@@ -55,16 +63,29 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		return nil, err
 	}
 
-	user := &domain.User{
+	user := &models.User{
 		Email:          req.Email,
 		HashedPassword: hashedPassword,
 		FullName:       req.FullName,
 		Phone:          req.Phone,
+		Status:         models.UserStatusPending,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
+
+	verifyToken := uuid.New().String()
+	err = s.registryTokenRepo.Create(
+		ctx,
+		hashToken(verifyToken),
+		user.ID,
+		time.Now().Add(s.cfg.RegistryTokenExpiry),
+	)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: publish event to send verification email with verifyToken
 
 	s.logger.Info("Register success",
 		zap.String("user_id", user.ID.String()),
@@ -72,7 +93,46 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 	return user, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*domain.User, string, string, error) {
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	tokenHash := hashToken(token)
+
+	registryToken, err := s.registryTokenRepo.GetUserIdByToken(ctx, tokenHash)
+	if err != nil {
+		return err
+	}
+	if registryToken == nil {
+		return apperr.ErrTokenInvalid
+	}
+
+	if !registryToken.IsValid() {
+		if registryToken.IsExpired() {
+			return apperr.ErrTokenExpired
+		}
+		return apperr.ErrTokenInvalid
+	}
+
+	user, err := s.userRepo.FindByID(ctx, registryToken.UserID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return apperr.ErrTokenInvalid
+	}
+
+	user.Status = models.UserStatusActive
+	now := time.Now()
+	user.EmailVerifiedAt = &now
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+
+	s.logger.Info("Email verification success",
+		zap.String("user_id", user.ID.String()),
+	)
+	return s.registryTokenRepo.MarkTokenAsUsed(ctx, tokenHash)
+}
+
+func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, "", "", err
@@ -91,7 +151,7 @@ func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*do
 		s.logger.Warn("Login failed: account is inactive",
 			zap.String("user_id", user.ID.String()),
 		)
-		return nil, "", "", apperr.New(apperr.CodeUnauthorized, "Account is inactive", codes.PermissionDenied)
+		return nil, "", "", domainerr.ErrAccountInactive
 	}
 
 	accessToken, refreshToken, err := s.generateTokenPair(ctx, user)
@@ -115,7 +175,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		return "", "", err
 	}
 
-	refreshTokenModel, err := s.refreshTokenRepo.FindByToken(ctx, hashRefreshToken(refreshTokenStr))
+	refreshTokenModel, err := s.refreshTokenRepo.FindByToken(ctx, hashToken(refreshTokenStr))
 	if err != nil {
 		return "", "", err
 	}
@@ -123,7 +183,8 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		return "", "", apperr.ErrTokenInvalid
 	}
 
-	userID := claims.UserID
+	userID := uuid.MustParse(claims.Subject)
+
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return "", "", err
@@ -133,7 +194,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 	}
 
 	if !user.IsActive() {
-		return "", "", apperr.New(apperr.CodeUnauthorized, "Account is inactive", codes.PermissionDenied)
+		return "", "", domainerr.ErrAccountInactive
 	}
 
 	if err := s.refreshTokenRepo.DeleteByID(ctx, refreshTokenModel.ID); err != nil {
@@ -143,7 +204,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 	return s.generateTokenPair(ctx, user)
 }
 
-func (s *AuthService) generateTokenPair(ctx context.Context, user *domain.User) (string, string, error) {
+func (s *AuthService) generateTokenPair(ctx context.Context, user *models.User) (string, string, error) {
 	accessToken, err := s.jwtService.GenerateAccessToken(user)
 	if err != nil {
 		return "", "", err
@@ -154,9 +215,9 @@ func (s *AuthService) generateTokenPair(ctx context.Context, user *domain.User) 
 		return "", "", err
 	}
 
-	refreshTokenModel := &domain.RefreshToken{
+	refreshTokenModel := &models.RefreshToken{
 		UserID:    user.ID,
-		TokenHash: hashRefreshToken(refreshToken),
+		TokenHash: hashToken(refreshToken),
 		ExpiresAt: time.Now().Add(s.jwtService.GetRefreshTTL()),
 	}
 
@@ -168,7 +229,7 @@ func (s *AuthService) generateTokenPair(ctx context.Context, user *domain.User) 
 	return accessToken, refreshToken, nil
 }
 
-func hashRefreshToken(token string) string {
+func hashToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return fmt.Sprintf("%x", hash)
 }

@@ -10,6 +10,7 @@ option go_package = "github.com/khoihuynh300/go-microservice/shared/proto/user;u
 
 service UserService {
     rpc Register (RegisterRequest) returns (RegisterResponse);
+    rpc VerifyEmail (VerifyEmailRequest) returns (google.protobuf.Empty);
     rpc Login (LoginRequest) returns (TokenResponse);
     rpc Refresh (RefreshRequest) returns (TokenResponse);
     rpc GetUser (GetUserRequest) returns (GetUserResponse);
@@ -29,6 +30,10 @@ message RegisterRequest {
 
 message RegisterResponse {
     string user_id = 1;
+}
+
+message VerifyEmailRequest {
+    string verify_token = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message LoginRequest {

@@ -1,4 +1,4 @@
-package domain
+package models
 
 import (
 	"time"
@@ -16,17 +16,18 @@ const (
 )
 
 type User struct {
-	ID             uuid.UUID
-	Email          string
-	HashedPassword string
-	FullName       string
-	Phone          string
-	AvatarURL      string
-	DateOfBirth    *time.Time
-	Gender         string
-	Status         UserStatus
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID              uuid.UUID
+	Email           string
+	HashedPassword  string
+	FullName        string
+	Phone           string
+	AvatarURL       string
+	DateOfBirth     *time.Time
+	Gender          string
+	Status          UserStatus
+	EmailVerifiedAt *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (u *User) IsActive() bool {

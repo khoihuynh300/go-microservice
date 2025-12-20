@@ -15,9 +15,9 @@ const (
 )
 
 var (
-	ErrUnauthenticated    = New(CodeUnauthenticated, "Unauthenticated", codes.Unauthenticated)
+	ErrUnauthenticated    = New(CodeUnauthenticated, "Authentication required", codes.Unauthenticated)
 	ErrUnauthorized       = New(CodeUnauthorized, "Permission denied", codes.PermissionDenied)
-	ErrInvalidCredentials = New(CodeInvalidCredentials, "Invalid credentials", codes.Unauthenticated)
+	ErrInvalidCredentials = New(CodeInvalidCredentials, "Incorrect login or password", codes.Unauthenticated)
 	ErrTokenExpired       = New(CodeTokenExpired, "Token has expired", codes.Unauthenticated)
 	ErrTokenInvalid       = New(CodeTokenInvalid, "Token is invalid", codes.Unauthenticated)
 	ErrValidationFailed   = New(CodeValidationFailed, "Validation failed", codes.InvalidArgument)

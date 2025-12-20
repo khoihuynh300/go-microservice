@@ -4,8 +4,9 @@ import (
 	"context"
 
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
-	"github.com/khoihuynh300/go-microservice/user-service/dto/request"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/service"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type UserHandler struct {
@@ -35,6 +36,14 @@ func (s *UserHandler) Register(ctx context.Context, req *userpb.RegisterRequest)
 	return &userpb.RegisterResponse{
 		UserId: user.ID.String(),
 	}, nil
+}
+
+func (s *UserHandler) VerifyEmail(ctx context.Context, req *userpb.VerifyEmailRequest) (*emptypb.Empty, error) {
+	err := s.authService.VerifyEmail(ctx, req.VerifyToken)
+	if err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
 }
 
 func (s *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.TokenResponse, error) {

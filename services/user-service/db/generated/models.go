@@ -11,6 +11,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ForgotPasswordToken struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	TokenHash     string
+	CreatedAt     time.Time
+	ExpiresAt     time.Time
+	UsedAt        pgtype.Timestamptz
+	InvalidatedAt pgtype.Timestamptz
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
@@ -19,19 +29,30 @@ type RefreshToken struct {
 	CreatedAt time.Time
 }
 
+type RegistryToken struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	TokenHash     string
+	CreatedAt     time.Time
+	ExpiresAt     time.Time
+	UsedAt        pgtype.Timestamptz
+	InvalidatedAt pgtype.Timestamptz
+}
+
 type User struct {
-	ID             uuid.UUID
-	Email          string
-	HashedPassword string
-	FullName       string
-	Phone          pgtype.Text
-	AvatarUrl      pgtype.Text
-	DateOfBirth    pgtype.Date
-	Gender         pgtype.Text
-	Status         string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	DeletedAt      pgtype.Timestamptz
+	ID              uuid.UUID
+	Email           string
+	HashedPassword  string
+	FullName        string
+	Phone           pgtype.Text
+	AvatarUrl       pgtype.Text
+	DateOfBirth     pgtype.Date
+	Gender          pgtype.Text
+	Status          string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       pgtype.Timestamptz
+	EmailVerifiedAt pgtype.Timestamptz
 }
 
 type UserAddress struct {
