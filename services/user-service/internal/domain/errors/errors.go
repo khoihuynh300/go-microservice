@@ -6,6 +6,8 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists = apperr.New(apperr.CodeAlreadyExists, "Email already exists", codes.AlreadyExists)
-	ErrAccountInactive    = apperr.New(apperr.CodeUnauthorized, "Account is inactive", codes.PermissionDenied)
+	ErrEmailAlreadyExists   = apperr.New(apperr.CodeAlreadyExists, "Email already exists", codes.AlreadyExists)
+	ErrAccountInactive      = apperr.New(apperr.CodeUnauthorized, "Account is inactive", codes.PermissionDenied)
+	ErrUserNotFound         = apperr.New(apperr.CodeNotFound, "User not found", codes.NotFound)
+	ErrEmailAlreadyVerified = apperr.New(apperr.CodeConflict, "Email already verified", codes.FailedPrecondition)
 )

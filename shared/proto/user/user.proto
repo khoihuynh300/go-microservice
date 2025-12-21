@@ -11,14 +11,20 @@ option go_package = "github.com/khoihuynh300/go-microservice/shared/proto/user;u
 service UserService {
     rpc Register (RegisterRequest) returns (RegisterResponse);
     rpc VerifyEmail (VerifyEmailRequest) returns (google.protobuf.Empty);
+    rpc ResendVerificationEmail (ResendVerificationEmailRequest) returns (google.protobuf.Empty);
     rpc Login (LoginRequest) returns (TokenResponse);
     rpc Refresh (RefreshRequest) returns (TokenResponse);
     rpc GetUser (GetUserRequest) returns (GetUserResponse);
     rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
-    rpc AddUserAddress (CreateUserAddressRequest) returns (CreateUserAddressResponse);
+    rpc ChangePassword (ChangePasswordRequest) returns (google.protobuf.Empty);
+    rpc ForgotPassword (ForgotPasswordRequest) returns (google.protobuf.Empty);
+    rpc ResetPassword (ResetPasswordRequest) returns (google.protobuf.Empty);
+    rpc CreateUserAddress (CreateUserAddressRequest) returns (CreateUserAddressResponse);
     rpc GetUserAddresses (GetUserAddressesRequest) returns (GetUserAddressesResponse);
+    rpc GetUserAddress (GetUserAddressRequest) returns (GetUserAddressResponse);
     rpc UpdateUserAddress (UpdateUserAddressRequest) returns (UpdateUserAddressResponse);
     rpc DeleteUserAddress (DeleteUserAddressRequest) returns (google.protobuf.Empty);
+    rpc SetDefaultUserAddress (SetDefaultUserAddressRequest) returns (google.protobuf.Empty);
 }
 
 message RegisterRequest {
@@ -34,6 +40,10 @@ message RegisterResponse {
 
 message VerifyEmailRequest {
     string verify_token = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message ResendVerificationEmailRequest {
+    string email = 1 [(buf.validate.field).string.email = true];
 }
 
 message LoginRequest {
@@ -70,6 +80,21 @@ message UpdateUserRequest {
 
 message UpdateUserResponse {
     User user = 1;
+}
+
+message ChangePasswordRequest {
+    string user_id = 1 [(buf.validate.field).string.uuid = true];
+    string old_password = 2 [(buf.validate.field).string.min_len = 8];
+    string new_password = 3 [(buf.validate.field).string.min_len = 8, (buf.validate.field).string.max_len = 64];
+}
+
+message ForgotPasswordRequest {
+    string email = 1 [(buf.validate.field).string.email = true];
+}
+
+message ResetPasswordRequest {
+    string reset_token = 1 [(buf.validate.field).string.min_len = 1];
+    string new_password = 2 [(buf.validate.field).string.min_len = 8, (buf.validate.field).string.max_len = 64];
 }
 
 message CreateUserAddressRequest {
@@ -115,7 +140,21 @@ message GetUserAddressesResponse {
     repeated Address addresses = 1;
 }
 
+message GetUserAddressRequest {
+    string address_id = 1 [(buf.validate.field).string.uuid = true];
+    string user_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message GetUserAddressResponse {
+    Address address = 1;
+}
+
 message DeleteUserAddressRequest {
+    string address_id = 1 [(buf.validate.field).string.uuid = true];
+    string user_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+message SetDefaultUserAddressRequest {
     string address_id = 1 [(buf.validate.field).string.uuid = true];
     string user_id = 2 [(buf.validate.field).string.uuid = true];
 }

@@ -20,16 +20,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_Register_FullMethodName          = "/user.UserService/Register"
-	UserService_VerifyEmail_FullMethodName       = "/user.UserService/VerifyEmail"
-	UserService_Login_FullMethodName             = "/user.UserService/Login"
-	UserService_Refresh_FullMethodName           = "/user.UserService/Refresh"
-	UserService_GetUser_FullMethodName           = "/user.UserService/GetUser"
-	UserService_UpdateUser_FullMethodName        = "/user.UserService/UpdateUser"
-	UserService_AddUserAddress_FullMethodName    = "/user.UserService/AddUserAddress"
-	UserService_GetUserAddresses_FullMethodName  = "/user.UserService/GetUserAddresses"
-	UserService_UpdateUserAddress_FullMethodName = "/user.UserService/UpdateUserAddress"
-	UserService_DeleteUserAddress_FullMethodName = "/user.UserService/DeleteUserAddress"
+	UserService_Register_FullMethodName                = "/user.UserService/Register"
+	UserService_VerifyEmail_FullMethodName             = "/user.UserService/VerifyEmail"
+	UserService_ResendVerificationEmail_FullMethodName = "/user.UserService/ResendVerificationEmail"
+	UserService_Login_FullMethodName                   = "/user.UserService/Login"
+	UserService_Refresh_FullMethodName                 = "/user.UserService/Refresh"
+	UserService_GetUser_FullMethodName                 = "/user.UserService/GetUser"
+	UserService_UpdateUser_FullMethodName              = "/user.UserService/UpdateUser"
+	UserService_ChangePassword_FullMethodName          = "/user.UserService/ChangePassword"
+	UserService_ForgotPassword_FullMethodName          = "/user.UserService/ForgotPassword"
+	UserService_ResetPassword_FullMethodName           = "/user.UserService/ResetPassword"
+	UserService_CreateUserAddress_FullMethodName       = "/user.UserService/CreateUserAddress"
+	UserService_GetUserAddresses_FullMethodName        = "/user.UserService/GetUserAddresses"
+	UserService_GetUserAddress_FullMethodName          = "/user.UserService/GetUserAddress"
+	UserService_UpdateUserAddress_FullMethodName       = "/user.UserService/UpdateUserAddress"
+	UserService_DeleteUserAddress_FullMethodName       = "/user.UserService/DeleteUserAddress"
+	UserService_SetDefaultUserAddress_FullMethodName   = "/user.UserService/SetDefaultUserAddress"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -38,14 +44,20 @@ const (
 type UserServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ResendVerificationEmail(ctx context.Context, in *ResendVerificationEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokenResponse, error)
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*TokenResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
-	AddUserAddress(ctx context.Context, in *CreateUserAddressRequest, opts ...grpc.CallOption) (*CreateUserAddressResponse, error)
+	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CreateUserAddress(ctx context.Context, in *CreateUserAddressRequest, opts ...grpc.CallOption) (*CreateUserAddressResponse, error)
 	GetUserAddresses(ctx context.Context, in *GetUserAddressesRequest, opts ...grpc.CallOption) (*GetUserAddressesResponse, error)
+	GetUserAddress(ctx context.Context, in *GetUserAddressRequest, opts ...grpc.CallOption) (*GetUserAddressResponse, error)
 	UpdateUserAddress(ctx context.Context, in *UpdateUserAddressRequest, opts ...grpc.CallOption) (*UpdateUserAddressResponse, error)
 	DeleteUserAddress(ctx context.Context, in *DeleteUserAddressRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SetDefaultUserAddress(ctx context.Context, in *SetDefaultUserAddressRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type userServiceClient struct {
@@ -70,6 +82,16 @@ func (c *userServiceClient) VerifyEmail(ctx context.Context, in *VerifyEmailRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_VerifyEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) ResendVerificationEmail(ctx context.Context, in *ResendVerificationEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_ResendVerificationEmail_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,10 +138,40 @@ func (c *userServiceClient) UpdateUser(ctx context.Context, in *UpdateUserReques
 	return out, nil
 }
 
-func (c *userServiceClient) AddUserAddress(ctx context.Context, in *CreateUserAddressRequest, opts ...grpc.CallOption) (*CreateUserAddressResponse, error) {
+func (c *userServiceClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_ChangePassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_ForgotPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_ResetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) CreateUserAddress(ctx context.Context, in *CreateUserAddressRequest, opts ...grpc.CallOption) (*CreateUserAddressResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateUserAddressResponse)
-	err := c.cc.Invoke(ctx, UserService_AddUserAddress_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, UserService_CreateUserAddress_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +182,16 @@ func (c *userServiceClient) GetUserAddresses(ctx context.Context, in *GetUserAdd
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUserAddressesResponse)
 	err := c.cc.Invoke(ctx, UserService_GetUserAddresses_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetUserAddress(ctx context.Context, in *GetUserAddressRequest, opts ...grpc.CallOption) (*GetUserAddressResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserAddressResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUserAddress_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,20 +218,36 @@ func (c *userServiceClient) DeleteUserAddress(ctx context.Context, in *DeleteUse
 	return out, nil
 }
 
+func (c *userServiceClient) SetDefaultUserAddress(ctx context.Context, in *SetDefaultUserAddressRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_SetDefaultUserAddress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error)
+	ResendVerificationEmail(context.Context, *ResendVerificationEmailRequest) (*emptypb.Empty, error)
 	Login(context.Context, *LoginRequest) (*TokenResponse, error)
 	Refresh(context.Context, *RefreshRequest) (*TokenResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
-	AddUserAddress(context.Context, *CreateUserAddressRequest) (*CreateUserAddressResponse, error)
+	ChangePassword(context.Context, *ChangePasswordRequest) (*emptypb.Empty, error)
+	ForgotPassword(context.Context, *ForgotPasswordRequest) (*emptypb.Empty, error)
+	ResetPassword(context.Context, *ResetPasswordRequest) (*emptypb.Empty, error)
+	CreateUserAddress(context.Context, *CreateUserAddressRequest) (*CreateUserAddressResponse, error)
 	GetUserAddresses(context.Context, *GetUserAddressesRequest) (*GetUserAddressesResponse, error)
+	GetUserAddress(context.Context, *GetUserAddressRequest) (*GetUserAddressResponse, error)
 	UpdateUserAddress(context.Context, *UpdateUserAddressRequest) (*UpdateUserAddressResponse, error)
 	DeleteUserAddress(context.Context, *DeleteUserAddressRequest) (*emptypb.Empty, error)
+	SetDefaultUserAddress(context.Context, *SetDefaultUserAddressRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -186,6 +264,9 @@ func (UnimplementedUserServiceServer) Register(context.Context, *RegisterRequest
 func (UnimplementedUserServiceServer) VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyEmail not implemented")
 }
+func (UnimplementedUserServiceServer) ResendVerificationEmail(context.Context, *ResendVerificationEmailRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResendVerificationEmail not implemented")
+}
 func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*TokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
 }
@@ -198,17 +279,32 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) 
 func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUser not implemented")
 }
-func (UnimplementedUserServiceServer) AddUserAddress(context.Context, *CreateUserAddressRequest) (*CreateUserAddressResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AddUserAddress not implemented")
+func (UnimplementedUserServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ChangePassword not implemented")
+}
+func (UnimplementedUserServiceServer) ForgotPassword(context.Context, *ForgotPasswordRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ForgotPassword not implemented")
+}
+func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetPassword not implemented")
+}
+func (UnimplementedUserServiceServer) CreateUserAddress(context.Context, *CreateUserAddressRequest) (*CreateUserAddressResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateUserAddress not implemented")
 }
 func (UnimplementedUserServiceServer) GetUserAddresses(context.Context, *GetUserAddressesRequest) (*GetUserAddressesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserAddresses not implemented")
+}
+func (UnimplementedUserServiceServer) GetUserAddress(context.Context, *GetUserAddressRequest) (*GetUserAddressResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserAddress not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateUserAddress(context.Context, *UpdateUserAddressRequest) (*UpdateUserAddressResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUserAddress not implemented")
 }
 func (UnimplementedUserServiceServer) DeleteUserAddress(context.Context, *DeleteUserAddressRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteUserAddress not implemented")
+}
+func (UnimplementedUserServiceServer) SetDefaultUserAddress(context.Context, *SetDefaultUserAddressRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetDefaultUserAddress not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -263,6 +359,24 @@ func _UserService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).VerifyEmail(ctx, req.(*VerifyEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_ResendVerificationEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResendVerificationEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ResendVerificationEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ResendVerificationEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ResendVerificationEmail(ctx, req.(*ResendVerificationEmailRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -339,20 +453,74 @@ func _UserService_UpdateUser_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_AddUserAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangePasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ChangePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ChangePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_ForgotPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgotPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ForgotPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ForgotPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ForgotPassword(ctx, req.(*ForgotPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ResetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_CreateUserAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateUserAddressRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).AddUserAddress(ctx, in)
+		return srv.(UserServiceServer).CreateUserAddress(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_AddUserAddress_FullMethodName,
+		FullMethod: UserService_CreateUserAddress_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).AddUserAddress(ctx, req.(*CreateUserAddressRequest))
+		return srv.(UserServiceServer).CreateUserAddress(ctx, req.(*CreateUserAddressRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -371,6 +539,24 @@ func _UserService_GetUserAddresses_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetUserAddresses(ctx, req.(*GetUserAddressesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetUserAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserAddress(ctx, req.(*GetUserAddressRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -411,6 +597,24 @@ func _UserService_DeleteUserAddress_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_SetDefaultUserAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDefaultUserAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SetDefaultUserAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_SetDefaultUserAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SetDefaultUserAddress(ctx, req.(*SetDefaultUserAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -425,6 +629,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyEmail",
 			Handler:    _UserService_VerifyEmail_Handler,
+		},
+		{
+			MethodName: "ResendVerificationEmail",
+			Handler:    _UserService_ResendVerificationEmail_Handler,
 		},
 		{
 			MethodName: "Login",
@@ -443,12 +651,28 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_UpdateUser_Handler,
 		},
 		{
-			MethodName: "AddUserAddress",
-			Handler:    _UserService_AddUserAddress_Handler,
+			MethodName: "ChangePassword",
+			Handler:    _UserService_ChangePassword_Handler,
+		},
+		{
+			MethodName: "ForgotPassword",
+			Handler:    _UserService_ForgotPassword_Handler,
+		},
+		{
+			MethodName: "ResetPassword",
+			Handler:    _UserService_ResetPassword_Handler,
+		},
+		{
+			MethodName: "CreateUserAddress",
+			Handler:    _UserService_CreateUserAddress_Handler,
 		},
 		{
 			MethodName: "GetUserAddresses",
 			Handler:    _UserService_GetUserAddresses_Handler,
+		},
+		{
+			MethodName: "GetUserAddress",
+			Handler:    _UserService_GetUserAddress_Handler,
 		},
 		{
 			MethodName: "UpdateUserAddress",
@@ -457,6 +681,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUserAddress",
 			Handler:    _UserService_DeleteUserAddress_Handler,
+		},
+		{
+			MethodName: "SetDefaultUserAddress",
+			Handler:    _UserService_SetDefaultUserAddress_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

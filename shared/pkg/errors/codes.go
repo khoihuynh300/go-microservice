@@ -10,6 +10,7 @@ const (
 	CodeTokenInvalid       = "TOKEN_INVALID"
 	CodeValidationFailed   = "VALIDATION_FAILED"
 	CodeNotFound           = "NOT_FOUND"
+	CodeConflict           = "CONFLICT"
 	CodeAlreadyExists      = "ALREADY_EXISTS"
 	CodeInternal           = "INTERNAL_ERROR"
 )

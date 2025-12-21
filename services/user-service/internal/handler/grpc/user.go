@@ -46,6 +46,14 @@ func (s *UserHandler) VerifyEmail(ctx context.Context, req *userpb.VerifyEmailRe
 	return &emptypb.Empty{}, nil
 }
 
+func (s *UserHandler) ResendVerificationEmail(ctx context.Context, req *userpb.ResendVerificationEmailRequest) (*emptypb.Empty, error) {
+	err := s.authService.ResendVerificationEmail(ctx, req.Email)
+	if err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
 func (s *UserHandler) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.TokenResponse, error) {
 	loginReq := &request.LoginRequest{
 		Email:    req.Email,

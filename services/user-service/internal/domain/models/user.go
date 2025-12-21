@@ -37,3 +37,7 @@ func (u *User) IsActive() bool {
 func (u *User) IsBanned() bool {
 	return u.Status == UserStatusBanned
 }
+
+func (u *User) IsEmailVerified() bool {
+	return u.EmailVerifiedAt != nil
+}

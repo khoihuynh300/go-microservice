@@ -12,6 +12,6 @@ type RegistryTokenRepository interface {
 	Repository
 	Create(ctx context.Context, token_hash string, userID uuid.UUID, expiresAt time.Time) error
 	GetByToken(ctx context.Context, token string) (*models.RegistryToken, error)
-	InvalidateToken(ctx context.Context, token_hash string) error
+	InvalidateAllUserTokens(ctx context.Context, userID uuid.UUID) error
 	MarkTokenAsUsed(ctx context.Context, token_hash string) error
 }

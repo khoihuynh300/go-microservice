@@ -69,8 +69,8 @@ func (r *registryTokenRepository) GetByToken(ctx context.Context, token string) 
 	}, nil
 }
 
-func (r *registryTokenRepository) InvalidateToken(ctx context.Context, token_hash string) error {
-	return r.queries(ctx).InvalidateRegistryTokens(ctx, uuid.Nil)
+func (r *registryTokenRepository) InvalidateAllUserTokens(ctx context.Context, userID uuid.UUID) error {
+	return r.queries(ctx).InvalidateRegistryTokens(ctx, userID)
 }
 
 func (r *registryTokenRepository) MarkTokenAsUsed(ctx context.Context, token_hash string) error {

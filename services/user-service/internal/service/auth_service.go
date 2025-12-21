@@ -127,7 +127,13 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 			return err
 		}
 		if user == nil {
-			return apperr.ErrTokenInvalid
+			return domainerr.ErrUserNotFound
+		}
+		if user.IsEmailVerified() {
+			s.logger.Info("Email already verified",
+				zap.String("user_id", user.ID.String()),
+			)
+			return domainerr.ErrEmailAlreadyVerified
 		}
 
 		user.Status = models.UserStatusActive
@@ -143,6 +149,48 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 		}
 
 		s.logger.Info("Email verification success",
+			zap.String("user_id", user.ID.String()),
+		)
+
+		return nil
+	})
+}
+
+func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string) error {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return domainerr.ErrUserNotFound
+	}
+
+	if user.IsEmailVerified() {
+		s.logger.Info("Resend verification email skipped: account already active",
+			zap.String("user_id", user.ID.String()),
+		)
+		return domainerr.ErrEmailAlreadyVerified
+	}
+
+	return s.registryTokenRepo.WithinTransaction(ctx, func(ctx context.Context) error {
+		err = s.registryTokenRepo.InvalidateAllUserTokens(ctx, user.ID)
+		if err != nil {
+			return err
+		}
+
+		verifyToken := uuid.New().String()
+		err = s.registryTokenRepo.Create(
+			ctx,
+			hashToken(verifyToken),
+			user.ID,
+			time.Now().Add(s.cfg.RegistryTokenExpiry),
+		)
+
+		if err != nil {
+			return err
+		}
+
+		s.logger.Info("Resend verification email success",
 			zap.String("user_id", user.ID.String()),
 		)
 
