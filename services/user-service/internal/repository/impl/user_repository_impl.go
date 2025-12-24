@@ -10,7 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/db/convert"
+	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 )
@@ -34,7 +35,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 		Email:          user.Email,
 		HashedPassword: user.HashedPassword,
 		FullName:       user.FullName,
-		Phone:          pgtype.Text{String: user.Phone, Valid: user.Phone != ""},
+		Phone:          convert.PtrToText(user.Phone),
 		Status:         string(user.Status),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
@@ -107,18 +108,15 @@ func (r *userRepository) Count(ctx context.Context, status models.UserStatus) (i
 
 func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	params := sqlc.UpdateUserParams{
-		ID:        user.ID,
-		FullName:  user.FullName,
-		Phone:     pgtype.Text{String: user.Phone, Valid: user.Phone != ""},
-		AvatarUrl: pgtype.Text{String: user.AvatarURL, Valid: user.AvatarURL != ""},
-		// DateOfBirth: pgtype.Date{Time: *user.DateOfBirth, Valid: user.DateOfBirth != nil},
-		Gender:    pgtype.Text{String: string(user.Gender), Valid: user.Gender != ""},
-		UpdatedAt: time.Now(),
-		Status:    string(user.Status),
-		EmailVerifiedAt: pgtype.Timestamptz{
-			Time:  *user.EmailVerifiedAt,
-			Valid: user.EmailVerifiedAt != nil,
-		},
+		ID:              user.ID,
+		FullName:        user.FullName,
+		Phone:           convert.PtrToText(user.Phone),
+		AvatarUrl:       convert.PtrToText(user.AvatarURL),
+		DateOfBirth:     convert.PtrToDate(user.DateOfBirth),
+		Gender:          convert.PtrToText(&user.Gender),
+		UpdatedAt:       time.Now(),
+		Status:          string(user.Status),
+		EmailVerifiedAt: convert.PtrToTimestamptz(user.EmailVerifiedAt),
 	}
 
 	result, err := r.queries(ctx).UpdateUser(ctx, params)
@@ -158,24 +156,18 @@ func (r *userRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 
 func (r *userRepository) mapToUser(row sqlc.User) *models.User {
 	user := &models.User{
-		ID:             row.ID,
-		Email:          row.Email,
-		HashedPassword: row.HashedPassword,
-		FullName:       row.FullName,
-		Phone:          row.Phone.String,
-		AvatarURL:      row.AvatarUrl.String,
-		Gender:         row.Gender.String,
-		Status:         models.UserStatus(row.Status),
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-	}
-
-	if row.DateOfBirth.Valid {
-		user.DateOfBirth = &row.DateOfBirth.Time
-	}
-
-	if row.EmailVerifiedAt.Valid {
-		user.EmailVerifiedAt = &row.EmailVerifiedAt.Time
+		ID:              row.ID,
+		Email:           row.Email,
+		HashedPassword:  row.HashedPassword,
+		FullName:        row.FullName,
+		Phone:           convert.PtrIfValid(row.Phone.String, row.Phone.Valid),
+		AvatarURL:       convert.PtrIfValid(row.AvatarUrl.String, row.AvatarUrl.Valid),
+		Gender:          models.Gender(row.Gender.String),
+		DateOfBirth:     convert.PtrIfValid(row.DateOfBirth.Time, row.DateOfBirth.Valid),
+		EmailVerifiedAt: convert.PtrIfValid(row.EmailVerifiedAt.Time, row.EmailVerifiedAt.Valid),
+		Status:          models.UserStatus(row.Status),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
 	}
 
 	return user

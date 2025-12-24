@@ -74,13 +74,15 @@ func run() error {
 		registryTokenRepository,
 		hasher,
 		jwtService,
-		logger,
 		cfg,
+	)
+	userService := service.NewUserService(
+		userRepository,
 	)
 
 	// grpc handlers
 	healthHandler := health.NewServer()
-	userHandler := grpchandler.NewUserHandler(authService)
+	userHandler := grpchandler.NewUserHandler(authService, userService)
 
 	validator, err := protovalidate.New()
 	if err != nil {
@@ -89,10 +91,11 @@ func run() error {
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			interceptor.RecoveryUnaryInterceptor(logger),
+			interceptor.RecoveryUnaryInterceptor(),
 			interceptor.ValidationUnaryInterceptor(validator),
 			interceptor.LoggingUnaryInterceptor(logger),
-			interceptor.ErrorHandlerInterceptor(logger),
+			interceptor.ErrorHandlerInterceptor(),
+			interceptor.AuthInterceptor(),
 		),
 	)
 

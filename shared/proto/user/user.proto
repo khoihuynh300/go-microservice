@@ -5,26 +5,124 @@ package user;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
 
 option go_package = "github.com/khoihuynh300/go-microservice/shared/proto/user;userpb";
 
 service UserService {
-    rpc Register (RegisterRequest) returns (RegisterResponse);
-    rpc VerifyEmail (VerifyEmailRequest) returns (google.protobuf.Empty);
-    rpc ResendVerificationEmail (ResendVerificationEmailRequest) returns (google.protobuf.Empty);
-    rpc Login (LoginRequest) returns (TokenResponse);
-    rpc Refresh (RefreshRequest) returns (TokenResponse);
-    rpc GetUser (GetUserRequest) returns (GetUserResponse);
-    rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
-    rpc ChangePassword (ChangePasswordRequest) returns (google.protobuf.Empty);
-    rpc ForgotPassword (ForgotPasswordRequest) returns (google.protobuf.Empty);
-    rpc ResetPassword (ResetPasswordRequest) returns (google.protobuf.Empty);
-    rpc CreateUserAddress (CreateUserAddressRequest) returns (CreateUserAddressResponse);
-    rpc GetUserAddresses (GetUserAddressesRequest) returns (GetUserAddressesResponse);
-    rpc GetUserAddress (GetUserAddressRequest) returns (GetUserAddressResponse);
-    rpc UpdateUserAddress (UpdateUserAddressRequest) returns (UpdateUserAddressResponse);
-    rpc DeleteUserAddress (DeleteUserAddressRequest) returns (google.protobuf.Empty);
-    rpc SetDefaultUserAddress (SetDefaultUserAddressRequest) returns (google.protobuf.Empty);
+    rpc Register (RegisterRequest) returns (RegisterResponse) {
+        option (google.api.http) = {
+            post: "/v1/auth/register"
+            body: "*"
+        };
+    }
+
+    rpc VerifyEmail (VerifyEmailRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/auth/verify-email"
+            body: "*"
+        };
+    }
+
+    rpc ResendVerificationEmail (ResendVerificationEmailRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/auth/register/resend"
+            body: "*"
+        };
+    }
+
+    rpc Login (LoginRequest) returns (TokenResponse) {
+        option (google.api.http) = {
+            post: "/v1/auth/login"
+            body: "*"
+        };
+    }
+
+    rpc Refresh (RefreshRequest) returns (TokenResponse) {
+        option (google.api.http) = {
+            post: "/v1/auth/refresh"
+            body: "*"
+        };
+    }
+
+    rpc GetMe (google.protobuf.Empty) returns (GetUserResponse) {
+        option (google.api.http) = {
+            get: "/v1/users/me"
+        };
+    }
+
+    rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+        option (google.api.http) = {
+            get: "/v1/users/{user_id}"
+        };
+    }
+
+    rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse) {
+        option (google.api.http) = {
+            patch: "/v1/users/me"
+            body: "*"
+        };
+    }
+
+    rpc ChangePassword (ChangePasswordRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/users/me/change-password"
+            body: "*"
+        };
+    }
+
+    rpc ForgotPassword (ForgotPasswordRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/auth/forgot-password"
+            body: "*"
+        };
+    }
+
+    rpc ResetPassword (ResetPasswordRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/auth/reset-password"
+            body: "*"
+        };
+    }
+
+    rpc CreateUserAddress (CreateUserAddressRequest) returns (CreateUserAddressResponse) {
+        option (google.api.http) = {
+            post: "/v1/users/me/addresses"
+            body: "*"
+        };
+    }
+
+    rpc GetUserAddresses (google.protobuf.Empty) returns (GetUserAddressesResponse) {
+        option (google.api.http) = {
+            get: "/v1/users/me/addresses"
+        };
+    }
+    
+    rpc GetUserAddress (GetUserAddressRequest) returns (GetUserAddressResponse) {
+        option (google.api.http) = {
+            get: "/v1/users/me/addresses/{address_id}"
+        };
+    }
+
+    rpc UpdateUserAddress (UpdateUserAddressRequest) returns (UpdateUserAddressResponse) {
+        option (google.api.http) = {
+            patch: "/v1/users/me/addresses/{address_id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteUserAddress (DeleteUserAddressRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/users/me/addresses/{address_id}"
+        };
+    }
+
+    rpc SetDefaultUserAddress (SetDefaultUserAddressRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/users/me/addresses/{address_id}/set-default"
+            body: "*"
+        };
+    }
 }
 
 message RegisterRequest {
@@ -70,7 +168,6 @@ message GetUserResponse {
 }
 
 message UpdateUserRequest {
-    string user_id = 1 [(buf.validate.field).string.uuid = true];
     optional string full_name = 2 [(buf.validate.field).string.min_len = 1];
     optional string email = 3 [(buf.validate.field).string.email = true];
     optional string phone = 4 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
@@ -83,7 +180,6 @@ message UpdateUserResponse {
 }
 
 message ChangePasswordRequest {
-    string user_id = 1 [(buf.validate.field).string.uuid = true];
     string old_password = 2 [(buf.validate.field).string.min_len = 8];
     string new_password = 3 [(buf.validate.field).string.min_len = 8, (buf.validate.field).string.max_len = 64];
 }
@@ -98,7 +194,6 @@ message ResetPasswordRequest {
 }
 
 message CreateUserAddressRequest {
-    string user_id = 1 [(buf.validate.field).string.uuid = true];
     string address_type = 2 [(buf.validate.field).string.in = "home,work,other"];
     string full_name = 3 [(buf.validate.field).string.min_len = 1];
     string phone = 4 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
@@ -115,8 +210,7 @@ message CreateUserAddressResponse {
 }
 
 message UpdateUserAddressRequest {
-    string id = 1 [(buf.validate.field).string.uuid = true];
-    string user_id = 2 [(buf.validate.field).string.uuid = true];
+    string address_id = 1 [(buf.validate.field).string.uuid = true];
     optional string address_type = 3 [(buf.validate.field).string.in = "home,work,other"];
     optional string full_name = 4 [(buf.validate.field).string.min_len = 1];
     optional string phone = 5 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
@@ -132,17 +226,12 @@ message UpdateUserAddressResponse {
     Address address = 1;
 }
 
-message GetUserAddressesRequest {
-    string user_id = 1 [(buf.validate.field).string.uuid = true];
-}
-
 message GetUserAddressesResponse {
     repeated Address addresses = 1;
 }
 
 message GetUserAddressRequest {
     string address_id = 1 [(buf.validate.field).string.uuid = true];
-    string user_id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message GetUserAddressResponse {
@@ -151,21 +240,19 @@ message GetUserAddressResponse {
 
 message DeleteUserAddressRequest {
     string address_id = 1 [(buf.validate.field).string.uuid = true];
-    string user_id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message SetDefaultUserAddressRequest {
     string address_id = 1 [(buf.validate.field).string.uuid = true];
-    string user_id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message User {
     string id = 1;
     string full_name = 2;
     string email = 3;
-    string phone = 4;
-    string avatar_url = 5;
-    google.protobuf.Timestamp date_of_birth = 6;
+    optional string phone = 4;
+    optional string avatar_url = 5;
+    optional google.protobuf.Timestamp date_of_birth = 6;
     string gender = 7;
     string status = 8;
 }

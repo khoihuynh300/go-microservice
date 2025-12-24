@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
 	domainerr "github.com/khoihuynh300/go-microservice/user-service/internal/domain/errors"
@@ -25,7 +26,6 @@ type AuthService struct {
 	registryTokenRepo repository.RegistryTokenRepository
 	passwordHasher    passwordhasher.PasswordHasher
 	jwtService        *jwtprovider.JwtService
-	logger            *zap.Logger
 	cfg               *config.Config
 }
 
@@ -35,7 +35,6 @@ func NewAuthService(
 	registryTokenRepo repository.RegistryTokenRepository,
 	passwordHasher passwordhasher.PasswordHasher,
 	jwtService *jwtprovider.JwtService,
-	logger *zap.Logger,
 	cfg *config.Config,
 ) *AuthService {
 	return &AuthService{
@@ -44,12 +43,13 @@ func NewAuthService(
 		registryTokenRepo: registryTokenRepo,
 		passwordHasher:    passwordHasher,
 		jwtService:        jwtService,
-		logger:            logger,
 		cfg:               cfg,
 	}
 }
 
 func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest) (*models.User, error) {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+
 	existedUser, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		Email:          req.Email,
 		HashedPassword: hashedPassword,
 		FullName:       req.FullName,
-		Phone:          req.Phone,
+		Phone:          &req.Phone,
 		Status:         models.UserStatusPending,
 	}
 
@@ -89,7 +89,7 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		}
 		// TODO: publish event to send verification email with verifyToken
 
-		s.logger.Info("Register success",
+		logger.Info("Register success",
 			zap.String("user_id", user.ID.String()),
 		)
 
@@ -104,6 +104,8 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+
 	tokenHash := hashToken(token)
 
 	return s.userRepo.WithinTransaction(ctx, func(ctx context.Context) error {
@@ -130,7 +132,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 			return domainerr.ErrUserNotFound
 		}
 		if user.IsEmailVerified() {
-			s.logger.Info("Email already verified",
+			logger.Info("Email already verified",
 				zap.String("user_id", user.ID.String()),
 			)
 			return domainerr.ErrEmailAlreadyVerified
@@ -148,7 +150,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 			return err
 		}
 
-		s.logger.Info("Email verification success",
+		logger.Info("Email verification success",
 			zap.String("user_id", user.ID.String()),
 		)
 
@@ -157,6 +159,8 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 }
 
 func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string) error {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return err
@@ -166,7 +170,7 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 	}
 
 	if user.IsEmailVerified() {
-		s.logger.Info("Resend verification email skipped: account already active",
+		logger.Info("Resend verification email skipped: account already active",
 			zap.String("user_id", user.ID.String()),
 		)
 		return domainerr.ErrEmailAlreadyVerified
@@ -190,7 +194,7 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 			return err
 		}
 
-		s.logger.Info("Resend verification email success",
+		logger.Info("Resend verification email success",
 			zap.String("user_id", user.ID.String()),
 		)
 
@@ -199,22 +203,24 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 }
 
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error) {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, "", "", err
 	}
 	if user == nil {
-		s.logger.Warn("Login failed: invalid credentials")
+		logger.Warn("Login failed: invalid credentials")
 		return nil, "", "", apperr.ErrInvalidCredentials
 	}
 
 	if !s.passwordHasher.Compare(user.HashedPassword, req.Password) {
-		s.logger.Warn("Login failed: invalid credentials")
+		logger.Warn("Login failed: invalid credentials")
 		return nil, "", "", apperr.ErrInvalidCredentials
 	}
 
 	if !user.IsActive() {
-		s.logger.Warn("Login failed: account is inactive",
+		logger.Warn("Login failed: account is inactive",
 			zap.String("user_id", user.ID.String()),
 		)
 		return nil, "", "", domainerr.ErrAccountInactive
@@ -225,7 +231,7 @@ func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*mo
 		return nil, "", "", err
 	}
 
-	s.logger.Info("Login success", zap.String("user_id", user.ID.String()))
+	logger.Info("Login success", zap.String("user_id", user.ID.String()))
 	return user, accessToken, refreshToken, nil
 }
 

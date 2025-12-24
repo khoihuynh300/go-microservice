@@ -15,15 +15,24 @@ const (
 	UserStatusBanned   UserStatus = "banned"
 )
 
+type Gender string
+
+const (
+	GenderMale    Gender = "male"
+	GenderFemale  Gender = "female"
+	GenderOther   Gender = "other"
+	GenderUnknown Gender = ""
+)
+
 type User struct {
 	ID              uuid.UUID
 	Email           string
 	HashedPassword  string
 	FullName        string
-	Phone           string
-	AvatarURL       string
+	Phone           *string
+	AvatarURL       *string
 	DateOfBirth     *time.Time
-	Gender          string
+	Gender          Gender
 	Status          UserStatus
 	EmailVerifiedAt *time.Time
 	CreatedAt       time.Time

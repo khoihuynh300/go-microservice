@@ -2,11 +2,16 @@ package interceptor
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
+	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
@@ -17,18 +22,27 @@ func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		start := time.Now()
-		md, _ := metadata.FromIncomingContext(ctx)
-		requestID := extractMetadata(md, "x-request-id")
-
-		if requestID != "" {
-			ctx = context.WithValue(ctx, "request_id", requestID)
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, status.Error(codes.Unauthenticated, "missing metadata")
 		}
 
-		logger.Info("unary request", zap.String("request_id", requestID), zap.String("method", info.FullMethod))
+		traceID, err := extractMetadata(md, mdkeys.TraceIDHeader)
+		if err != nil {
+			return nil, status.Error(codes.Unauthenticated, "missing trace ID")
+		}
+		if traceID == "" {
+			return nil, status.Error(codes.Unauthenticated, "missing trace ID")
+		}
+
+		ctxLogger := logger.With(zap.String("trace_id", traceID))
+		ctx = context.WithValue(ctx, contextkeys.TraceIDKey, traceID)
+		ctx = context.WithValue(ctx, contextkeys.LoggerKey, ctxLogger)
+		ctxLogger.Info("unary request", zap.String("method", info.FullMethod))
+
 		resp, err := handler(ctx, req)
 
-		logger.Info("unary response",
-			zap.String("request_id", requestID),
+		ctxLogger.Info("unary response",
 			zap.String("method", info.FullMethod),
 			zap.Duration("duration", time.Since(start)),
 			zap.Error(err),
@@ -37,10 +51,10 @@ func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-func extractMetadata(md metadata.MD, key string) string {
+func extractMetadata(md metadata.MD, key string) (string, error) {
 	values := md.Get(key)
 	if len(values) > 0 {
-		return values[0]
+		return values[0], nil
 	}
-	return ""
+	return "", fmt.Errorf("key '%s' not found in metadata", key)
 }

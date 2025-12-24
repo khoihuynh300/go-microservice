@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
+	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 )
+
+type txKey struct{}
 
 type baseRepository struct {
 	db *pgxpool.Pool
@@ -52,5 +55,16 @@ func (r *baseRepository) WithinTransaction(ctx context.Context, fn func(ctx cont
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	return nil
+}
+
+func injectTx(ctx context.Context, tx pgx.Tx) context.Context {
+	return context.WithValue(ctx, txKey{}, tx)
+}
+
+func extractTx(ctx context.Context) pgx.Tx {
+	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+		return tx
+	}
 	return nil
 }

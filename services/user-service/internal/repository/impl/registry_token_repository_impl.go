@@ -9,7 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/db/convert"
+	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 )
@@ -48,24 +49,14 @@ func (r *registryTokenRepository) GetByToken(ctx context.Context, token string) 
 		return nil, err
 	}
 
-	var usedAt *time.Time
-	if row.UsedAt.Valid {
-		usedAt = &row.UsedAt.Time
-	}
-
-	var invalidatedAt *time.Time
-	if row.InvalidatedAt.Valid {
-		invalidatedAt = &row.InvalidatedAt.Time
-	}
-
 	return &models.RegistryToken{
 		ID:            row.ID,
 		UserID:        row.UserID,
 		TokenHash:     row.TokenHash,
 		CreatedAt:     row.CreatedAt,
 		ExpiresAt:     row.ExpiresAt,
-		UsedAt:        usedAt,
-		InvalidatedAt: invalidatedAt,
+		UsedAt:        convert.PtrIfValid(row.UsedAt.Time, row.UsedAt.Valid),
+		InvalidatedAt: convert.PtrIfValid(row.InvalidatedAt.Time, row.InvalidatedAt.Valid),
 	}, nil
 }
 

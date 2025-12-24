@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
+	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 )
