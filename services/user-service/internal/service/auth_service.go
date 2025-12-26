@@ -11,7 +11,6 @@ import (
 	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
-	domainerr "github.com/khoihuynh300/go-microservice/user-service/internal/domain/errors"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
@@ -55,7 +54,7 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		return nil, err
 	}
 	if existedUser != nil {
-		return nil, domainerr.ErrEmailAlreadyExists
+		return nil, apperr.ErrEmailAlreadyExists
 	}
 
 	hashedPassword, err := s.passwordHasher.Hash(req.Password)
@@ -129,13 +128,13 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 			return err
 		}
 		if user == nil {
-			return domainerr.ErrUserNotFound
+			return apperr.ErrUserNotFound
 		}
 		if user.IsEmailVerified() {
 			logger.Info("Email already verified",
 				zap.String("user_id", user.ID.String()),
 			)
-			return domainerr.ErrEmailAlreadyVerified
+			return apperr.ErrEmailAlreadyVerified
 		}
 
 		user.Status = models.UserStatusActive
@@ -166,14 +165,14 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 		return err
 	}
 	if user == nil {
-		return domainerr.ErrUserNotFound
+		return apperr.ErrUserNotFound
 	}
 
 	if user.IsEmailVerified() {
 		logger.Info("Resend verification email skipped: account already active",
 			zap.String("user_id", user.ID.String()),
 		)
-		return domainerr.ErrEmailAlreadyVerified
+		return apperr.ErrEmailAlreadyVerified
 	}
 
 	return s.registryTokenRepo.WithinTransaction(ctx, func(ctx context.Context) error {
@@ -223,7 +222,7 @@ func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*mo
 		logger.Warn("Login failed: account is inactive",
 			zap.String("user_id", user.ID.String()),
 		)
-		return nil, "", "", domainerr.ErrAccountInactive
+		return nil, "", "", apperr.ErrAccountInactive
 	}
 
 	accessToken, refreshToken, err := s.generateTokenPair(ctx, user)
@@ -266,7 +265,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 	}
 
 	if !user.IsActive() {
-		return "", "", domainerr.ErrAccountInactive
+		return "", "", apperr.ErrAccountInactive
 	}
 
 	if err := s.refreshTokenRepo.DeleteByID(ctx, refreshTokenModel.ID); err != nil {

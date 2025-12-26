@@ -20,7 +20,7 @@ func VerifyAccessToken(tokenString, secret string) (*AccessTokenClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrTokenInvalid
 		}
-		return secret, nil
+		return []byte(secret), nil
 	})
 
 	if err != nil || !token.Valid {

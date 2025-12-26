@@ -7,6 +7,7 @@ import (
 
 	"github.com/khoihuynh300/go-microservice/api-gateway/internal/config"
 	"github.com/khoihuynh300/go-microservice/api-gateway/internal/security/jwtvalidator"
+	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
 )
 
@@ -28,25 +29,27 @@ func AuthMiddleware(next http.Handler, cfg *config.Config) http.Handler {
 
 		authHeader := r.Header.Get(AuthorizationHeader)
 		if authHeader == "" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "missing authorization header"})
+			writeErrorResponse(w, apperr.ErrUnauthenticated)
 			return
 		}
 
 		if !strings.HasPrefix(authHeader, BearerPrefix) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "invalid authorization header format"})
+			writeErrorResponse(w, apperr.ErrInvalidAuthHeader)
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, BearerPrefix)
 		claims, err := jwtvalidator.VerifyAccessToken(tokenString, cfg.Secret)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "invalid or expired token"})
+			if err == jwtvalidator.ErrTokenExpired {
+				writeErrorResponse(w, apperr.ErrTokenExpired)
+				return
+			} else if err == jwtvalidator.ErrTokenInvalid {
+				writeErrorResponse(w, apperr.ErrTokenInvalid)
+				return
+			}
+
+			writeErrorResponse(w, apperr.ErrInternal)
 			return
 		}
 
@@ -54,6 +57,12 @@ func AuthMiddleware(next http.Handler, cfg *config.Config) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func writeErrorResponse(w http.ResponseWriter, err *apperr.AppError) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(err.HTTPStatus)
+	json.NewEncoder(w).Encode(err)
 }
 
 func isPublicRoute(path string) bool {

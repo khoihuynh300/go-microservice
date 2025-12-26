@@ -30,7 +30,7 @@ func ErrorHandlerInterceptor() grpc.UnaryServerInterceptor {
 						zap.String("code", appErr.Code),
 						zap.String("message", appErr.Message),
 						zap.Any("details", appErr.Details),
-						zap.Error(appErr.OriginalError),
+						zap.Error(appErr.Err),
 					)
 
 				case codes.NotFound, codes.AlreadyExists, codes.InvalidArgument:

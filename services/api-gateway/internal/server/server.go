@@ -34,6 +34,9 @@ func (s *Server) Run(ctx context.Context) error {
 
 	mux := runtime.NewServeMux(
 		runtime.WithIncomingHeaderMatcher(middleware.CustomHeaderMatcher),
+		runtime.WithErrorHandler(middleware.CustomErrorHandler),
+		runtime.WithForwardResponseOption(middleware.SuccessResponseModifier),
+		runtime.WithMarshalerOption("*", &middleware.CustomMarshaler{}),
 	)
 
 	opts := []grpc.DialOption{

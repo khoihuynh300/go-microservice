@@ -1624,9 +1624,9 @@ const file_user_user_proto_rawDesc = "" +
 	"\vVerifyEmail\x12\x18.user.VerifyEmailRequest\x1a\x16.google.protobuf.Empty\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/v1/auth/verify-email\x12|\n" +
 	"\x17ResendVerificationEmail\x12$.user.ResendVerificationEmailRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/auth/register/resend\x12K\n" +
 	"\x05Login\x12\x12.user.LoginRequest\x1a\x13.user.TokenResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/auth/login\x12Q\n" +
-	"\aRefresh\x12\x14.user.RefreshRequest\x1a\x13.user.TokenResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/auth/refresh\x12L\n" +
-	"\x05GetMe\x12\x16.google.protobuf.Empty\x1a\x15.user.GetUserResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/users/me\x12S\n" +
-	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x15.user.GetUserResponse\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/users/{user_id}\x12X\n" +
+	"\aRefresh\x12\x14.user.RefreshRequest\x1a\x13.user.TokenResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/auth/refresh\x12S\n" +
+	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x15.user.GetUserResponse\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/users/{user_id}\x12L\n" +
+	"\x05GetMe\x12\x16.google.protobuf.Empty\x1a\x15.user.GetUserResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/users/me\x12X\n" +
 	"\n" +
 	"UpdateUser\x12\x17.user.UpdateUserRequest\x1a\x18.user.UpdateUserResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*2\f/v1/users/me\x12n\n" +
 	"\x0eChangePassword\x12\x1b.user.ChangePasswordRequest\x1a\x16.google.protobuf.Empty\"'\x82\xd3\xe4\x93\x02!:\x01*\"\x1c/v1/users/me/change-password\x12j\n" +
@@ -1696,8 +1696,8 @@ var file_user_user_proto_depIdxs = []int32{
 	3,  // 10: user.UserService.ResendVerificationEmail:input_type -> user.ResendVerificationEmailRequest
 	4,  // 11: user.UserService.Login:input_type -> user.LoginRequest
 	6,  // 12: user.UserService.Refresh:input_type -> user.RefreshRequest
-	26, // 13: user.UserService.GetMe:input_type -> google.protobuf.Empty
-	7,  // 14: user.UserService.GetUser:input_type -> user.GetUserRequest
+	7,  // 13: user.UserService.GetUser:input_type -> user.GetUserRequest
+	26, // 14: user.UserService.GetMe:input_type -> google.protobuf.Empty
 	9,  // 15: user.UserService.UpdateUser:input_type -> user.UpdateUserRequest
 	11, // 16: user.UserService.ChangePassword:input_type -> user.ChangePasswordRequest
 	12, // 17: user.UserService.ForgotPassword:input_type -> user.ForgotPasswordRequest
@@ -1713,8 +1713,8 @@ var file_user_user_proto_depIdxs = []int32{
 	26, // 27: user.UserService.ResendVerificationEmail:output_type -> google.protobuf.Empty
 	5,  // 28: user.UserService.Login:output_type -> user.TokenResponse
 	5,  // 29: user.UserService.Refresh:output_type -> user.TokenResponse
-	8,  // 30: user.UserService.GetMe:output_type -> user.GetUserResponse
-	8,  // 31: user.UserService.GetUser:output_type -> user.GetUserResponse
+	8,  // 30: user.UserService.GetUser:output_type -> user.GetUserResponse
+	8,  // 31: user.UserService.GetMe:output_type -> user.GetUserResponse
 	10, // 32: user.UserService.UpdateUser:output_type -> user.UpdateUserResponse
 	26, // 33: user.UserService.ChangePassword:output_type -> google.protobuf.Empty
 	26, // 34: user.UserService.ForgotPassword:output_type -> google.protobuf.Empty

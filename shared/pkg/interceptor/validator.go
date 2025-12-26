@@ -17,15 +17,22 @@ func ValidationUnaryInterceptor(validator protovalidate.Validator) grpc.UnarySer
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		if err := validator.Validate(req.(proto.Message)); err != nil {
-			appError := apperr.ErrValidationFailed
+			details := make([]apperr.ErrorDetail, 0)
 
 			if validationErr, ok := err.(*protovalidate.ValidationError); ok {
 				for _, violation := range validationErr.Violations {
 					fieldName := violation.Proto.GetField().GetElements()[0].GetFieldName()
 					description := violation.Proto.GetMessage()
-					appError = appError.WithDetail(fieldName, description)
+
+					details = append(details, apperr.ErrorDetail{
+						Field:   fieldName,
+						Code:    violation.Proto.GetRuleId(),
+						Message: description,
+					})
 				}
 			}
+
+			appError := apperr.NewErrValidationFailed(details)
 
 			return nil, apperr.ToGRPC(appError)
 		}

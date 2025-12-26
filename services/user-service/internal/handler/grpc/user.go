@@ -3,8 +3,8 @@ package grpchandler
 import (
 	"context"
 
+	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
-	domainerr "github.com/khoihuynh300/go-microservice/user-service/internal/domain/errors"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/service"
 	"google.golang.org/grpc/codes"
@@ -101,7 +101,7 @@ func (s *UserHandler) GetMe(ctx context.Context, req *emptypb.Empty) (*userpb.Ge
 		return nil, err
 	}
 	if user == nil {
-		return nil, domainerr.ErrUserNotFound
+		return nil, apperr.ErrUserNotFound
 	}
 
 	var dateOfBirth *timestamppb.Timestamp = nil

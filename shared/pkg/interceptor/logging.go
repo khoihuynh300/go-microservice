@@ -38,11 +38,11 @@ func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		ctxLogger := logger.With(zap.String("trace_id", traceID))
 		ctx = context.WithValue(ctx, contextkeys.TraceIDKey, traceID)
 		ctx = context.WithValue(ctx, contextkeys.LoggerKey, ctxLogger)
-		ctxLogger.Info("unary request", zap.String("method", info.FullMethod))
+		ctxLogger.Info("grpc request", zap.String("method", info.FullMethod))
 
 		resp, err := handler(ctx, req)
 
-		ctxLogger.Info("unary response",
+		ctxLogger.Info("grpc response",
 			zap.String("method", info.FullMethod),
 			zap.Duration("duration", time.Since(start)),
 			zap.Error(err),
