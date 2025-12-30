@@ -91,11 +91,12 @@ func run() error {
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			interceptor.TracingInterceptor(logger),
 			interceptor.RecoveryUnaryInterceptor(),
-			interceptor.ValidationUnaryInterceptor(validator),
-			interceptor.LoggingUnaryInterceptor(logger),
-			interceptor.ErrorHandlerInterceptor(),
+			interceptor.LoggingUnaryInterceptor(),
 			interceptor.AuthInterceptor(),
+			interceptor.ValidationUnaryInterceptor(validator),
+			interceptor.ErrorHandlerInterceptor(),
 		),
 	)
 

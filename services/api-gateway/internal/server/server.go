@@ -47,9 +47,10 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	handler := middleware.LoggingMiddleware(mux, s.logger)
+	// order of middleware: Tracing -> Logging -> Auth
+	handler := middleware.AuthMiddleware(mux, s.cfg)
+	handler = middleware.LoggingMiddleware(handler, s.logger)
 	handler = middleware.TracingMiddleware(handler)
-	handler = middleware.AuthMiddleware(handler, s.cfg)
 
 	s.httpServer = &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", s.cfg.Host, s.cfg.Port),

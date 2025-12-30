@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
 	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
 )
 
@@ -20,6 +22,9 @@ func TracingMiddleware(next http.Handler) http.Handler {
 
 		w.Header().Set(TraceIDHeader, traceID)
 		r.Header.Set(mdkeys.TraceIDHeader, traceID)
+
+		ctx := context.WithValue(r.Context(), contextkeys.TraceIDKey, traceID)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

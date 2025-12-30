@@ -3,6 +3,7 @@ package interceptor
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
 	"go.uber.org/zap"
@@ -30,7 +31,10 @@ func RecoveryUnaryInterceptor() grpc.UnaryServerInterceptor {
 					panicMsg = fmt.Sprintf("%v", x)
 				}
 
-				logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+				logger, ok := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+				if !ok || logger == nil {
+					log.Println("Missing logger in context for recovery interceptor")
+				}
 				logger.Error("panic recovered",
 					zap.String("method", info.FullMethod),
 					zap.String("panic", panicMsg),
