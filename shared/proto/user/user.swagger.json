@@ -443,45 +443,6 @@
         ]
       }
     },
-    "/v1/users/me/addresses/{addressId}/set-default": {
-      "post": {
-        "operationId": "UserService_SetDefaultUserAddress",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "type": "object",
-              "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "addressId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/UserServiceSetDefaultUserAddressBody"
-            }
-          }
-        ],
-        "tags": [
-          "UserService"
-        ]
-      }
-    },
     "/v1/users/me/change-password": {
       "post": {
         "operationId": "UserService_ChangePassword",
@@ -522,7 +483,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/userGetUserResponse"
+              "$ref": "#/definitions/userGetPublicUserResponse"
             }
           },
           "default": {
@@ -547,9 +508,6 @@
     }
   },
   "definitions": {
-    "UserServiceSetDefaultUserAddressBody": {
-      "type": "object"
-    },
     "UserServiceUpdateUserAddressBody": {
       "type": "object",
       "properties": {
@@ -651,7 +609,7 @@
     "userChangePasswordRequest": {
       "type": "object",
       "properties": {
-        "oldPassword": {
+        "currentPassword": {
           "type": "string"
         },
         "newPassword": {
@@ -707,6 +665,14 @@
         }
       }
     },
+    "userGetPublicUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/userPublicUserProfile"
+        }
+      }
+    },
     "userGetUserAddressResponse": {
       "type": "object",
       "properties": {
@@ -742,6 +708,20 @@
           "type": "string"
         },
         "password": {
+          "type": "string"
+        }
+      }
+    },
+    "userPublicUserProfile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "avatarUrl": {
           "type": "string"
         }
       }
@@ -821,12 +801,6 @@
       "type": "object",
       "properties": {
         "fullName": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string"
-        },
-        "phone": {
           "type": "string"
         },
         "dateOfBirth": {

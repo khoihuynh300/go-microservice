@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
-	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
+	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/const/metadata"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -5,38 +5,155 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type ForgotPasswordToken struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	TokenHash     string
-	CreatedAt     time.Time
-	ExpiresAt     time.Time
-	UsedAt        pgtype.Timestamptz
-	InvalidatedAt pgtype.Timestamptz
+type AddressTypeEnum string
+
+const (
+	AddressTypeEnumHome  AddressTypeEnum = "home"
+	AddressTypeEnumWork  AddressTypeEnum = "work"
+	AddressTypeEnumOther AddressTypeEnum = "other"
+)
+
+func (e *AddressTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AddressTypeEnum(s)
+	case string:
+		*e = AddressTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AddressTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullAddressTypeEnum struct {
+	AddressTypeEnum AddressTypeEnum
+	Valid           bool // Valid is true if AddressTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAddressTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.AddressTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AddressTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAddressTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AddressTypeEnum), nil
+}
+
+type UserGenderEnum string
+
+const (
+	UserGenderEnumMale   UserGenderEnum = "male"
+	UserGenderEnumFemale UserGenderEnum = "female"
+	UserGenderEnumOther  UserGenderEnum = "other"
+)
+
+func (e *UserGenderEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserGenderEnum(s)
+	case string:
+		*e = UserGenderEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserGenderEnum: %T", src)
+	}
+	return nil
+}
+
+type NullUserGenderEnum struct {
+	UserGenderEnum UserGenderEnum
+	Valid          bool // Valid is true if UserGenderEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserGenderEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserGenderEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserGenderEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserGenderEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserGenderEnum), nil
+}
+
+type UserStatusEnum string
+
+const (
+	UserStatusEnumPending   UserStatusEnum = "pending"
+	UserStatusEnumActive    UserStatusEnum = "active"
+	UserStatusEnumInactive  UserStatusEnum = "inactive"
+	UserStatusEnumSuspended UserStatusEnum = "suspended"
+)
+
+func (e *UserStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserStatusEnum(s)
+	case string:
+		*e = UserStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullUserStatusEnum struct {
+	UserStatusEnum UserStatusEnum
+	Valid          bool // Valid is true if UserStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserStatusEnum), nil
 }
 
 type RefreshToken struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	TokenHash string
-	ExpiresAt time.Time
-	CreatedAt time.Time
-}
-
-type RegistryToken struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	TokenHash     string
-	CreatedAt     time.Time
-	ExpiresAt     time.Time
-	UsedAt        pgtype.Timestamptz
-	InvalidatedAt pgtype.Timestamptz
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  string
+	DeviceInfo pgtype.Text
+	IpAddress  *netip.Addr
+	UserAgent  pgtype.Text
+	ExpiresAt  time.Time
+	RevokedAt  pgtype.Timestamptz
+	CreatedAt  time.Time
 }
 
 type User struct {
@@ -47,23 +164,23 @@ type User struct {
 	Phone           pgtype.Text
 	AvatarUrl       pgtype.Text
 	DateOfBirth     pgtype.Date
-	Gender          pgtype.Text
-	Status          string
+	Gender          NullUserGenderEnum
+	Status          UserStatusEnum
+	EmailVerifiedAt pgtype.Timestamptz
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       pgtype.Timestamptz
-	EmailVerifiedAt pgtype.Timestamptz
 }
 
 type UserAddress struct {
 	ID           uuid.UUID
 	UserID       uuid.UUID
-	AddressType  string
+	AddressType  AddressTypeEnum
 	FullName     string
 	Phone        pgtype.Text
 	AddressLine1 string
 	AddressLine2 pgtype.Text
-	Ward         pgtype.Text
+	Ward         string
 	City         string
 	Country      string
 	IsDefault    pgtype.Bool

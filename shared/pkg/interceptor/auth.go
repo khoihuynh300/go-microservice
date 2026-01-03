@@ -3,8 +3,8 @@ package interceptor
 import (
 	"context"
 
-	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
-	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
+	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/const/metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -17,6 +17,8 @@ var publicMethods = []string{
 	"/user.UserService/VerifyEmail",
 	"/user.UserService/ResendVerificationEmail",
 	"/user.UserService/Refresh",
+	"/user.UserService/ForgotPassword",
+	"/user.UserService/ResetPassword",
 }
 
 func AuthInterceptor() grpc.UnaryServerInterceptor {

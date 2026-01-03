@@ -7,8 +7,8 @@ import (
 
 	"github.com/khoihuynh300/go-microservice/api-gateway/internal/config"
 	"github.com/khoihuynh300/go-microservice/api-gateway/internal/security/jwtvalidator"
+	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/const/metadata"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
-	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
 )
 
 const (

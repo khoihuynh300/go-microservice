@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 )
 
 func PtrToText[T ~string](p *T) pgtype.Text {
@@ -33,6 +35,16 @@ func PtrToTimestamptz(p *time.Time) pgtype.Timestamptz {
 	return pgtype.Timestamptz{
 		Time:  *p,
 		Valid: true,
+	}
+}
+
+func PtrToGenderEnum(p *models.Gender) sqlc.NullUserGenderEnum {
+	if p == nil {
+		return sqlc.NullUserGenderEnum{}
+	}
+	return sqlc.NullUserGenderEnum{
+		UserGenderEnum: sqlc.UserGenderEnum(*p),
+		Valid:          true,
 	}
 }
 

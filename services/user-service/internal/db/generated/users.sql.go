@@ -18,7 +18,7 @@ SELECT COUNT(*) FROM users
 WHERE status = $1
 `
 
-func (q *Queries) CountUsers(ctx context.Context, status string) (int64, error) {
+func (q *Queries) CountUsers(ctx context.Context, status UserStatusEnum) (int64, error) {
 	row := q.db.QueryRow(ctx, countUsers, status)
 	var count int64
 	err := row.Scan(&count)
@@ -31,7 +31,7 @@ INSERT INTO users (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
 )
-RETURNING id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, created_at, updated_at, deleted_at, email_verified_at
+RETURNING id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -40,7 +40,7 @@ type CreateUserParams struct {
 	HashedPassword string
 	FullName       string
 	Phone          pgtype.Text
-	Status         string
+	Status         UserStatusEnum
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -67,17 +67,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.Status,
+		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.EmailVerifiedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, created_at, updated_at, deleted_at, email_verified_at FROM users
-WHERE email = $1 LIMIT 1
+SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at FROM users
+WHERE email = $1 AND deleted_at IS NULL LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -93,17 +93,17 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.Status,
+		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.EmailVerifiedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, created_at, updated_at, deleted_at, email_verified_at FROM users
-WHERE id = $1 LIMIT 1
+SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at FROM users
+WHERE id = $1 AND deleted_at IS NULL LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -119,23 +119,23 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.Status,
+		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.EmailVerifiedAt,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, created_at, updated_at, deleted_at, email_verified_at FROM users
+SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at FROM users
 WHERE status = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
 type ListUsersParams struct {
-	Status string
+	Status UserStatusEnum
 	Limit  int32
 	Offset int32
 }
@@ -159,10 +159,10 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.DateOfBirth,
 			&i.Gender,
 			&i.Status,
+			&i.EmailVerifiedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
-			&i.EmailVerifiedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -202,7 +202,7 @@ SET
     status = $8,
     email_verified_at = $9
 WHERE id = $1
-RETURNING id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, created_at, updated_at, deleted_at, email_verified_at
+RETURNING id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at
 `
 
 type UpdateUserParams struct {
@@ -211,9 +211,9 @@ type UpdateUserParams struct {
 	Phone           pgtype.Text
 	AvatarUrl       pgtype.Text
 	DateOfBirth     pgtype.Date
-	Gender          pgtype.Text
+	Gender          NullUserGenderEnum
 	UpdatedAt       time.Time
-	Status          string
+	Status          UserStatusEnum
 	EmailVerifiedAt pgtype.Timestamptz
 }
 
@@ -240,10 +240,10 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.DateOfBirth,
 		&i.Gender,
 		&i.Status,
+		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.EmailVerifiedAt,
 	)
 	return i, err
 }
@@ -273,7 +273,7 @@ WHERE id = $1
 
 type UpdateUserStatusParams struct {
 	ID        uuid.UUID
-	Status    string
+	Status    UserStatusEnum
 	UpdatedAt time.Time
 }
 

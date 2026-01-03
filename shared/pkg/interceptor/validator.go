@@ -9,13 +9,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func ValidationUnaryInterceptor(validator protovalidate.Validator) grpc.UnaryServerInterceptor {
+func ValidationUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
+
+		validator, err := protovalidate.New()
+		if err != nil {
+			return nil, apperr.ToGRPC(apperr.ErrInternal)
+		}
+
 		if err := validator.Validate(req.(proto.Message)); err != nil {
 			details := make([]apperr.ErrorDetail, 0)
 

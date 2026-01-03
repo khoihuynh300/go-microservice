@@ -10,11 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"buf.build/go/protovalidate"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/cache"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/interceptor"
 	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/caching"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
 	grpchandler "github.com/khoihuynh300/go-microservice/user-service/internal/handler/grpc"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository/impl"
@@ -43,51 +44,59 @@ func run() error {
 	)
 	defer stop()
 
-	cfg := config.LoadConfig()
+	err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
 
-	logger, err := zaplogger.New(cfg.ServiceName, cfg.Env)
+	logger, err := zaplogger.New(config.ServiceName, config.Env)
 	if err != nil {
 		return err
 	}
 	defer logger.Sync()
 
-	dbCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	dbpool, err := initDB(dbCtx, cfg.DBUrl)
+	dbpool, err := initDB(ctx, config.DBUrl)
 	if err != nil {
 		return fmt.Errorf("failed to init db: %w", err)
 	}
 	defer dbpool.Close()
 
 	hasher := passwordhasher.NewBcryptHasher(bcrypt.DefaultCost)
-	jwtService := jwtprovider.NewJwtService(cfg.JwtAccessSecret, cfg.AccessTokenTTL, cfg.JwtRefreshSecret, cfg.RefreshTokenTTL)
+	jwtService := jwtprovider.NewJwtService(
+		config.JwtAccessSecret,
+		config.AccessTokenTTL,
+		config.JwtRefreshSecret,
+		config.RefreshTokenTTL,
+	)
 
 	// repositories
 	userRepository := impl.NewUserRepository(dbpool)
 	refreshTokenRepository := impl.NewRefreshTokenRepository(dbpool)
-	registryTokenRepository := impl.NewRegistryTokenRepository(dbpool)
+	addressRepository := impl.NewAddressRepository(dbpool)
+
+	// caching
+	redis, err := cache.NewClient(&cache.Config{
+		Host:     config.RedisHost,
+		Port:     config.RedisPort,
+		Password: config.RedisPassword,
+		DB:       config.RedisDB,
+	})
+	tokenCache := caching.NewTokenCache(redis)
 
 	// services
 	authService := service.NewAuthService(
 		userRepository,
 		refreshTokenRepository,
-		registryTokenRepository,
+		tokenCache,
 		hasher,
 		jwtService,
-		cfg,
 	)
-	userService := service.NewUserService(
-		userRepository,
-	)
+	userService := service.NewUserService(userRepository)
+	addressService := service.NewAddressService(userRepository, addressRepository)
 
 	// grpc handlers
 	healthHandler := health.NewServer()
-	userHandler := grpchandler.NewUserHandler(authService, userService)
-
-	validator, err := protovalidate.New()
-	if err != nil {
-		return fmt.Errorf("failed to initialize validator: %w", err)
-	}
+	userHandler := grpchandler.NewUserHandler(authService, userService, addressService)
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -95,7 +104,7 @@ func run() error {
 			interceptor.RecoveryUnaryInterceptor(),
 			interceptor.LoggingUnaryInterceptor(),
 			interceptor.AuthInterceptor(),
-			interceptor.ValidationUnaryInterceptor(validator),
+			interceptor.ValidationUnaryInterceptor(),
 			interceptor.ErrorHandlerInterceptor(),
 		),
 	)
@@ -104,11 +113,11 @@ func run() error {
 	healthpb.RegisterHealthServer(grpcServer, healthHandler)
 	userpb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	if cfg.Env == "DEV" {
+	if config.Env == "DEV" {
 		reflection.Register(grpcServer)
 	}
 
-	lis, err := net.Listen("tcp", cfg.GRPCAddr)
+	lis, err := net.Listen("tcp", config.GRPCAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
@@ -119,12 +128,12 @@ func run() error {
 		}
 	}()
 
-	logger.Info("user service listening on", zap.String("addr", cfg.GRPCAddr))
-	healthHandler.SetServingStatus(cfg.ServiceName, healthpb.HealthCheckResponse_SERVING)
+	logger.Info("user service listening on", zap.String("addr", config.GRPCAddr))
+	healthHandler.SetServingStatus(config.ServiceName, healthpb.HealthCheckResponse_SERVING)
 
 	<-ctx.Done()
 	logger.Info("shutdown signal received")
-	healthHandler.SetServingStatus(cfg.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
+	healthHandler.SetServingStatus(config.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
 
 	done := make(chan struct{})
 	go func() {
@@ -144,11 +153,14 @@ func run() error {
 }
 
 func initDB(ctx context.Context, dbURL string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, dbURL)
+	dbCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.New(dbCtx, dbURL)
 	if err != nil {
 		return nil, err
 	}
-	if err := pool.Ping(ctx); err != nil {
+	if err := pool.Ping(dbCtx); err != nil {
 		return nil, err
 	}
 	return pool, nil

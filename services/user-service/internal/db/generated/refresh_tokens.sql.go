@@ -55,9 +55,17 @@ FROM refresh_tokens
 WHERE token_hash = $1
 `
 
-func (q *Queries) GetRefreshTokenByTokenHash(ctx context.Context, tokenHash string) (RefreshToken, error) {
+type GetRefreshTokenByTokenHashRow struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetRefreshTokenByTokenHash(ctx context.Context, tokenHash string) (GetRefreshTokenByTokenHashRow, error) {
 	row := q.db.QueryRow(ctx, getRefreshTokenByTokenHash, tokenHash)
-	var i RefreshToken
+	var i GetRefreshTokenByTokenHashRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,

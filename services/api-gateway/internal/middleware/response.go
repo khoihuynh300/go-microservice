@@ -40,7 +40,8 @@ func (m *CustomMarshaler) Marshal(v interface{}) ([]byte, error) {
 func SuccessResponseModifier(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
 
 	marshaler := protojson.MarshalOptions{
-		UseProtoNames: false, // camelCase (json_name)
+		UseProtoNames:   false, // camelCase (json_name)
+		EmitUnpopulated: true,
 	}
 
 	jsonBytes, err := marshaler.Marshal(resp)

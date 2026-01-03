@@ -18,10 +18,9 @@ const (
 type Gender string
 
 const (
-	GenderMale    Gender = "male"
-	GenderFemale  Gender = "female"
-	GenderOther   Gender = "other"
-	GenderUnknown Gender = ""
+	GenderMale   Gender = "male"
+	GenderFemale Gender = "female"
+	GenderOther  Gender = "other"
 )
 
 type User struct {
@@ -29,10 +28,10 @@ type User struct {
 	Email           string
 	HashedPassword  string
 	FullName        string
-	Phone           *string
-	AvatarURL       *string
+	Phone           string
+	AvatarURL       string
 	DateOfBirth     *time.Time
-	Gender          Gender
+	Gender          *Gender
 	Status          UserStatus
 	EmailVerifiedAt *time.Time
 	CreatedAt       time.Time

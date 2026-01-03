@@ -2,47 +2,43 @@ package service
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
-	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/caching"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/utils"
 	"go.uber.org/zap"
 )
 
 type AuthService struct {
-	userRepo          repository.UserRepository
-	refreshTokenRepo  repository.RefreshTokenRepository
-	registryTokenRepo repository.RegistryTokenRepository
-	passwordHasher    passwordhasher.PasswordHasher
-	jwtService        *jwtprovider.JwtService
-	cfg               *config.Config
+	userRepo         repository.UserRepository
+	refreshTokenRepo repository.RefreshTokenRepository
+	tokenCache       *caching.TokenCache
+	passwordHasher   passwordhasher.PasswordHasher
+	jwtService       *jwtprovider.JwtService
 }
 
 func NewAuthService(
 	userRepo repository.UserRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
-	registryTokenRepo repository.RegistryTokenRepository,
+	tokenCache *caching.TokenCache,
 	passwordHasher passwordhasher.PasswordHasher,
 	jwtService *jwtprovider.JwtService,
-	cfg *config.Config,
 ) *AuthService {
 	return &AuthService{
-		userRepo:          userRepo,
-		refreshTokenRepo:  refreshTokenRepo,
-		registryTokenRepo: registryTokenRepo,
-		passwordHasher:    passwordHasher,
-		jwtService:        jwtService,
-		cfg:               cfg,
+		userRepo:         userRepo,
+		refreshTokenRepo: refreshTokenRepo,
+		tokenCache:       tokenCache,
+		passwordHasher:   passwordHasher,
+		jwtService:       jwtService,
 	}
 }
 
@@ -66,7 +62,7 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		Email:          req.Email,
 		HashedPassword: hashedPassword,
 		FullName:       req.FullName,
-		Phone:          &req.Phone,
+		Phone:          req.Phone,
 		Status:         models.UserStatusPending,
 	}
 
@@ -76,16 +72,11 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 			return err
 		}
 
-		verifyToken := uuid.New().String()
-		err = s.registryTokenRepo.Create(
-			ctx,
-			hashToken(verifyToken),
-			user.ID,
-			time.Now().Add(s.cfg.RegistryTokenExpiry),
-		)
+		_, err := s.tokenCache.SetEmailVerifyToken(ctx, user.Email)
 		if err != nil {
 			return err
 		}
+
 		// TODO: publish event to send verification email with verifyToken
 
 		logger.Info("Register success",
@@ -105,56 +96,40 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
 
-	tokenHash := hashToken(token)
+	email, err := s.tokenCache.VerifyEmailToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, caching.ErrTokenInvalidOrExpired) {
+			return apperr.ErrTokenInvalidOrExpired
+		}
+		return err
+	}
 
-	return s.userRepo.WithinTransaction(ctx, func(ctx context.Context) error {
-		registryToken, err := s.registryTokenRepo.GetByToken(ctx, tokenHash)
-		if err != nil {
-			return err
-		}
-		if registryToken == nil {
-			return apperr.ErrTokenInvalid
-		}
-
-		if !registryToken.IsValid() {
-			if registryToken.IsExpired() {
-				return apperr.ErrTokenExpired
-			}
-			return apperr.ErrTokenInvalid
-		}
-
-		user, err := s.userRepo.FindByID(ctx, registryToken.UserID)
-		if err != nil {
-			return err
-		}
-		if user == nil {
-			return apperr.ErrUserNotFound
-		}
-		if user.IsEmailVerified() {
-			logger.Info("Email already verified",
-				zap.String("user_id", user.ID.String()),
-			)
-			return apperr.ErrEmailAlreadyVerified
-		}
-
-		user.Status = models.UserStatusActive
-		now := time.Now()
-		user.EmailVerifiedAt = &now
-		if err := s.userRepo.Update(ctx, user); err != nil {
-			return err
-		}
-
-		err = s.registryTokenRepo.MarkTokenAsUsed(ctx, tokenHash)
-		if err != nil {
-			return err
-		}
-
-		logger.Info("Email verification success",
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return apperr.ErrUserNotFound
+	}
+	if user.IsEmailVerified() {
+		logger.Info("Email already verified",
 			zap.String("user_id", user.ID.String()),
 		)
+		return apperr.ErrEmailAlreadyVerified
+	}
 
-		return nil
-	})
+	user.Status = models.UserStatusActive
+	now := time.Now()
+	user.EmailVerifiedAt = &now
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+
+	logger.Info("Email verification success",
+		zap.String("user_id", user.ID.String()),
+	)
+
+	return nil
 }
 
 func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string) error {
@@ -175,30 +150,18 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 		return apperr.ErrEmailAlreadyVerified
 	}
 
-	return s.registryTokenRepo.WithinTransaction(ctx, func(ctx context.Context) error {
-		err = s.registryTokenRepo.InvalidateAllUserTokens(ctx, user.ID)
-		if err != nil {
-			return err
-		}
+	_, err = s.tokenCache.SetEmailVerifyToken(ctx, user.Email)
+	if err != nil {
+		return err
+	}
 
-		verifyToken := uuid.New().String()
-		err = s.registryTokenRepo.Create(
-			ctx,
-			hashToken(verifyToken),
-			user.ID,
-			time.Now().Add(s.cfg.RegistryTokenExpiry),
-		)
+	// TODO: publish event to send verification email with verifyToken
 
-		if err != nil {
-			return err
-		}
+	logger.Info("Resend verification email success",
+		zap.String("user_id", user.ID.String()),
+	)
 
-		logger.Info("Resend verification email success",
-			zap.String("user_id", user.ID.String()),
-		)
-
-		return nil
-	})
+	return nil
 }
 
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error) {
@@ -246,7 +209,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		return "", "", err
 	}
 
-	refreshTokenModel, err := s.refreshTokenRepo.FindByToken(ctx, hashToken(refreshTokenStr))
+	refreshTokenModel, err := s.refreshTokenRepo.FindByToken(ctx, utils.HashToken(refreshTokenStr))
 	if err != nil {
 		return "", "", err
 	}
@@ -288,7 +251,7 @@ func (s *AuthService) generateTokenPair(ctx context.Context, user *models.User) 
 
 	refreshTokenModel := &models.RefreshToken{
 		UserID:    user.ID,
-		TokenHash: hashToken(refreshToken),
+		TokenHash: utils.HashToken(refreshToken),
 		ExpiresAt: time.Now().Add(s.jwtService.GetRefreshTTL()),
 	}
 
@@ -300,7 +263,98 @@ func (s *AuthService) generateTokenPair(ctx context.Context, user *models.User) 
 	return accessToken, refreshToken, nil
 }
 
-func hashToken(token string) string {
-	hash := sha256.Sum256([]byte(token))
-	return fmt.Sprintf("%x", hash)
+func (s *AuthService) ChangePassword(ctx context.Context, userID string, req *request.ChangePasswordRequest) error {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.userRepo.FindByID(ctx, userUUID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return apperr.ErrUserNotFound
+	}
+
+	if !s.passwordHasher.Compare(user.HashedPassword, req.CurrentPassword) {
+		logger.Warn("Change password failed: invalid current password",
+			zap.String("user_id", user.ID.String()),
+		)
+		return apperr.ErrInvalidCurrentPassword
+	}
+
+	newHashedPassword, err := s.passwordHasher.Hash(req.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepo.UpdatePassword(ctx, user.ID, newHashedPassword)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("Change password success",
+		zap.String("user_id", user.ID.String()),
+	)
+	return nil
+}
+
+func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return apperr.ErrUserNotFound
+	}
+
+	_, err = s.tokenCache.SetPasswordResetToken(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("Forgot password token created",
+		zap.String("user_id", user.ID.String()),
+	)
+
+	return nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+
+	email, err := s.tokenCache.VerifyPasswordResetToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, caching.ErrTokenInvalidOrExpired) {
+			return apperr.ErrTokenInvalidOrExpired
+		}
+		return err
+	}
+
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return apperr.ErrUserNotFound
+	}
+
+	newHashedPassword, err := s.passwordHasher.Hash(newPassword)
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepo.UpdatePassword(ctx, user.ID, newHashedPassword)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("Reset password success",
+		zap.String("user_id", user.ID.String()),
+	)
+	return nil
 }

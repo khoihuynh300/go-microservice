@@ -39,12 +39,14 @@ var (
 	ErrInternal      = New(CodeInternal, "Internal server error", nil, http.StatusInternalServerError, codes.Internal)
 
 	// auth errors
-	ErrUnauthenticated    = New(CodeUnauthenticated, "Authentication required", nil, http.StatusUnauthorized, codes.Unauthenticated)
-	ErrInvalidAuthHeader  = New(CodeUnauthenticated, "Invalid authorization header", nil, http.StatusUnauthorized, codes.Unauthenticated)
-	ErrUnauthorized       = New(CodeUnauthorized, "Permission denied", nil, http.StatusForbidden, codes.PermissionDenied)
-	ErrInvalidCredentials = New(CodeInvalidCredentials, "Incorrect login or password", nil, http.StatusUnauthorized, codes.Unauthenticated)
-	ErrTokenExpired       = New(CodeTokenExpired, "Token has expired", nil, http.StatusUnauthorized, codes.Unauthenticated)
-	ErrTokenInvalid       = New(CodeTokenInvalid, "Token is invalid", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrUnauthenticated        = New(CodeUnauthenticated, "Authentication required", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrInvalidAuthHeader      = New(CodeUnauthenticated, "Invalid authorization header", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrUnauthorized           = New(CodeUnauthorized, "Permission denied", nil, http.StatusForbidden, codes.PermissionDenied)
+	ErrInvalidCredentials     = New(CodeInvalidCredentials, "Incorrect login or password", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrInvalidCurrentPassword = New(CodeInvalidCredentials, "Current password is incorrect", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrTokenExpired           = New(CodeTokenExpired, "Token has expired", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrTokenInvalid           = New(CodeTokenInvalid, "Token is invalid", nil, http.StatusUnauthorized, codes.Unauthenticated)
+	ErrTokenInvalidOrExpired  = New(CodeTokenInvalid, "Token is invalid or expired", nil, http.StatusUnauthorized, codes.Unauthenticated)
 
 	//// business errors
 	// user
@@ -52,6 +54,9 @@ var (
 	ErrAccountInactive      = New(CodeAccountInactive, "Account is inactive", nil, http.StatusUnauthorized, codes.PermissionDenied)
 	ErrUserNotFound         = New(CodeUserNotFound, "User not found", nil, http.StatusNotFound, codes.NotFound)
 	ErrEmailAlreadyVerified = New(CodeEmailAlreadyVerified, "Email already verified", nil, http.StatusConflict, codes.FailedPrecondition)
+
+	// address
+	ErrAddressNotFound = New("ADDRESS_NOT_FOUND", "Address not found", nil, http.StatusNotFound, codes.NotFound)
 )
 
 func NewErrValidationFailed(details []ErrorDetail) *AppError {

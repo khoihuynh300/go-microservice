@@ -45,7 +45,7 @@ service UserService {
         };
     }
     
-    rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    rpc GetUser (GetUserRequest) returns (GetPublicUserResponse) {
         option (google.api.http) = {
             get: "/v1/users/{user_id}"
         };
@@ -117,12 +117,6 @@ service UserService {
         };
     }
 
-    rpc SetDefaultUserAddress (SetDefaultUserAddressRequest) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-            post: "/v1/users/me/addresses/{address_id}/set-default"
-            body: "*"
-        };
-    }
 }
 
 message RegisterRequest {
@@ -167,12 +161,14 @@ message GetUserResponse {
     User user = 1;
 }
 
+message GetPublicUserResponse {
+    PublicUserProfile user = 1;
+}
+
 message UpdateUserRequest {
-    optional string full_name = 2 [(buf.validate.field).string.min_len = 1];
-    optional string email = 3 [(buf.validate.field).string.email = true];
-    optional string phone = 4 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
-    optional google.protobuf.Timestamp date_of_birth = 5;
-    optional string gender = 6;
+    optional string full_name = 1 [(buf.validate.field).string.min_len = 1];
+    optional google.protobuf.Timestamp date_of_birth = 2;
+    optional string gender = 3;
 }
 
 message UpdateUserResponse {
@@ -180,8 +176,8 @@ message UpdateUserResponse {
 }
 
 message ChangePasswordRequest {
-    string old_password = 2 [(buf.validate.field).string.min_len = 8];
-    string new_password = 3 [(buf.validate.field).string.min_len = 8, (buf.validate.field).string.max_len = 64];
+    string current_password = 1 [(buf.validate.field).string.min_len = 8];
+    string new_password = 2 [(buf.validate.field).string.min_len = 8, (buf.validate.field).string.max_len = 64];
 }
 
 message ForgotPasswordRequest {
@@ -194,15 +190,17 @@ message ResetPasswordRequest {
 }
 
 message CreateUserAddressRequest {
-    string address_type = 2 [(buf.validate.field).string.in = "home,work,other"];
-    string full_name = 3 [(buf.validate.field).string.min_len = 1];
-    string phone = 4 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
-    string address_line1 = 5 [(buf.validate.field).string.min_len = 1];
-    string address_line2 = 6;
-    string ward = 7 [(buf.validate.field).string.min_len = 1];
-    string city = 8 [(buf.validate.field).string.min_len = 1];
-    string country = 9 [(buf.validate.field).string.min_len = 1];
-    bool is_default = 10;
+    string address_type = 1 [(buf.validate.field).string = {
+        in: ["home", "work", "other"]
+    }];
+    string full_name = 2 [(buf.validate.field).string.min_len = 1];
+    string phone = 3 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
+    string address_line1 = 4 [(buf.validate.field).string.min_len = 1];
+    string address_line2 = 5;
+    string ward = 6 [(buf.validate.field).string.min_len = 1];
+    string city = 7 [(buf.validate.field).string.min_len = 1];
+    string country = 8 [(buf.validate.field).string.min_len = 1];
+    bool is_default = 9;
 }
 
 message CreateUserAddressResponse {
@@ -211,15 +209,15 @@ message CreateUserAddressResponse {
 
 message UpdateUserAddressRequest {
     string address_id = 1 [(buf.validate.field).string.uuid = true];
-    optional string address_type = 3 [(buf.validate.field).string.in = "home,work,other"];
-    optional string full_name = 4 [(buf.validate.field).string.min_len = 1];
-    optional string phone = 5 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
-    optional string address_line1 = 6 [(buf.validate.field).string.min_len = 1];
-    optional string address_line2 = 7;
-    optional string ward = 8 [(buf.validate.field).string.min_len = 1];
-    optional string city = 9 [(buf.validate.field).string.min_len = 1];
-    optional string country = 10 [(buf.validate.field).string.min_len = 1];
-    optional bool is_default = 11;
+    optional string address_type = 2 [(buf.validate.field).string.in = "home,work,other"];
+    optional string full_name = 3 [(buf.validate.field).string.min_len = 1];
+    optional string phone = 4 [(buf.validate.field).string.pattern = "^[0-9]{10,15}$"];
+    optional string address_line1 = 5 [(buf.validate.field).string.min_len = 1];
+    optional string address_line2 = 6;
+    optional string ward = 7 [(buf.validate.field).string.min_len = 1];
+    optional string city = 8 [(buf.validate.field).string.min_len = 1];
+    optional string country = 9 [(buf.validate.field).string.min_len = 1];
+    optional bool is_default = 10;
 }
 
 message UpdateUserAddressResponse {
@@ -250,11 +248,17 @@ message User {
     string id = 1;
     string full_name = 2;
     string email = 3;
-    optional string phone = 4;
-    optional string avatar_url = 5;
+    string phone = 4;
+    string avatar_url = 5;
     optional google.protobuf.Timestamp date_of_birth = 6;
-    string gender = 7;
+    optional string gender = 7;
     string status = 8;
+}
+
+message PublicUserProfile {
+    string id = 1;
+    string full_name = 2;
+    string avatar_url = 3;
 }
 
 message Address {

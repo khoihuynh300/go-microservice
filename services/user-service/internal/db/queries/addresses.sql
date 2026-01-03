@@ -1,6 +1,6 @@
--- name: GetAddressByID :one
+-- name: GetAddressByIDAndUserID :one
 SELECT * FROM user_addresses
-WHERE id = $1 LIMIT 1;
+WHERE id = $1 AND user_id = $2 LIMIT 1;
 
 -- name: ListAddressesByUserID :many
 SELECT * FROM user_addresses
@@ -11,11 +11,11 @@ ORDER BY created_at DESC;
 INSERT INTO user_addresses (
     id, user_id, address_type, full_name, phone,
     address_line1, address_line2, ward, city, country,
-    is_default, created_at, updated_at
+    created_at, updated_at
 ) VALUES (
     $1, $2, $3, $4, $5,
     $6, $7, $8, $9, $10,
-    $11, $12, $13
+    $11, $12
 )
 RETURNING *;
 
@@ -30,8 +30,7 @@ SET
     ward = $7,
     city = $8,
     country = $9,
-    is_default = $10,
-    updated_at = $11
+    updated_at = $10
 WHERE id = $1
 RETURNING *;
 

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/khoihuynh300/go-microservice/shared/pkg/contextkeys"
-	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
+	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/const/metadata"
 )
 
 const (

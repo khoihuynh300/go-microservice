@@ -35,8 +35,8 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 		Email:          user.Email,
 		HashedPassword: user.HashedPassword,
 		FullName:       user.FullName,
-		Phone:          convert.PtrToText(user.Phone),
-		Status:         string(user.Status),
+		Phone:          pgtype.Text{String: user.Phone, Valid: true},
+		Status:         sqlc.UserStatusEnum(user.Status),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
@@ -80,7 +80,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 
 func (r *userRepository) List(ctx context.Context, status models.UserStatus, limit, offset int) ([]*models.User, error) {
 	params := sqlc.ListUsersParams{
-		Status: string(status),
+		Status: sqlc.UserStatusEnum(status),
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	}
@@ -98,7 +98,7 @@ func (r *userRepository) List(ctx context.Context, status models.UserStatus, lim
 }
 
 func (r *userRepository) Count(ctx context.Context, status models.UserStatus) (int64, error) {
-	count, err := r.queries(ctx).CountUsers(ctx, string(status))
+	count, err := r.queries(ctx).CountUsers(ctx, sqlc.UserStatusEnum(status))
 	if err != nil {
 		return 0, err
 	}
@@ -110,12 +110,12 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	params := sqlc.UpdateUserParams{
 		ID:              user.ID,
 		FullName:        user.FullName,
-		Phone:           convert.PtrToText(user.Phone),
-		AvatarUrl:       convert.PtrToText(user.AvatarURL),
+		Phone:           pgtype.Text{String: user.Phone, Valid: true},
+		AvatarUrl:       pgtype.Text{String: user.AvatarURL, Valid: true},
 		DateOfBirth:     convert.PtrToDate(user.DateOfBirth),
-		Gender:          convert.PtrToText(&user.Gender),
+		Gender:          convert.PtrToGenderEnum(user.Gender),
 		UpdatedAt:       time.Now(),
-		Status:          string(user.Status),
+		Status:          sqlc.UserStatusEnum(user.Status),
 		EmailVerifiedAt: convert.PtrToTimestamptz(user.EmailVerifiedAt),
 	}
 
@@ -140,7 +140,7 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, hashe
 func (r *userRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status models.UserStatus) error {
 	params := sqlc.UpdateUserStatusParams{
 		ID:        id,
-		Status:    string(status),
+		Status:    sqlc.UserStatusEnum(status),
 		UpdatedAt: time.Now(),
 	}
 	return r.queries(ctx).UpdateUserStatus(ctx, params)
@@ -160,9 +160,9 @@ func (r *userRepository) mapToUser(row sqlc.User) *models.User {
 		Email:           row.Email,
 		HashedPassword:  row.HashedPassword,
 		FullName:        row.FullName,
-		Phone:           convert.PtrIfValid(row.Phone.String, row.Phone.Valid),
-		AvatarURL:       convert.PtrIfValid(row.AvatarUrl.String, row.AvatarUrl.Valid),
-		Gender:          models.Gender(row.Gender.String),
+		Phone:           row.Phone.String,
+		AvatarURL:       row.AvatarUrl.String,
+		Gender:          convert.PtrIfValid(models.Gender(row.Gender.UserGenderEnum), row.Gender.Valid),
 		DateOfBirth:     convert.PtrIfValid(row.DateOfBirth.Time, row.DateOfBirth.Valid),
 		EmailVerifiedAt: convert.PtrIfValid(row.EmailVerifiedAt.Time, row.EmailVerifiedAt.Valid),
 		Status:          models.UserStatus(row.Status),

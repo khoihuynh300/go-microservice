@@ -17,11 +17,11 @@ const createAddress = `-- name: CreateAddress :one
 INSERT INTO user_addresses (
     id, user_id, address_type, full_name, phone,
     address_line1, address_line2, ward, city, country,
-    is_default, created_at, updated_at
+    created_at, updated_at
 ) VALUES (
     $1, $2, $3, $4, $5,
     $6, $7, $8, $9, $10,
-    $11, $12, $13
+    $11, $12
 )
 RETURNING id, user_id, address_type, full_name, phone, address_line1, address_line2, ward, city, country, is_default, created_at, updated_at
 `
@@ -29,15 +29,14 @@ RETURNING id, user_id, address_type, full_name, phone, address_line1, address_li
 type CreateAddressParams struct {
 	ID           uuid.UUID
 	UserID       uuid.UUID
-	AddressType  string
+	AddressType  AddressTypeEnum
 	FullName     string
 	Phone        pgtype.Text
 	AddressLine1 string
 	AddressLine2 pgtype.Text
-	Ward         pgtype.Text
+	Ward         string
 	City         string
 	Country      string
-	IsDefault    pgtype.Bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -54,7 +53,6 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (U
 		arg.Ward,
 		arg.City,
 		arg.Country,
-		arg.IsDefault,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -86,13 +84,18 @@ func (q *Queries) DeleteAddress(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getAddressByID = `-- name: GetAddressByID :one
+const getAddressByIDAndUserID = `-- name: GetAddressByIDAndUserID :one
 SELECT id, user_id, address_type, full_name, phone, address_line1, address_line2, ward, city, country, is_default, created_at, updated_at FROM user_addresses
-WHERE id = $1 LIMIT 1
+WHERE id = $1 AND user_id = $2 LIMIT 1
 `
 
-func (q *Queries) GetAddressByID(ctx context.Context, id uuid.UUID) (UserAddress, error) {
-	row := q.db.QueryRow(ctx, getAddressByID, id)
+type GetAddressByIDAndUserIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetAddressByIDAndUserID(ctx context.Context, arg GetAddressByIDAndUserIDParams) (UserAddress, error) {
+	row := q.db.QueryRow(ctx, getAddressByIDAndUserID, arg.ID, arg.UserID)
 	var i UserAddress
 	err := row.Scan(
 		&i.ID,
@@ -179,23 +182,21 @@ SET
     ward = $7,
     city = $8,
     country = $9,
-    is_default = $10,
-    updated_at = $11
+    updated_at = $10
 WHERE id = $1
 RETURNING id, user_id, address_type, full_name, phone, address_line1, address_line2, ward, city, country, is_default, created_at, updated_at
 `
 
 type UpdateAddressParams struct {
 	ID           uuid.UUID
-	AddressType  string
+	AddressType  AddressTypeEnum
 	FullName     string
 	Phone        pgtype.Text
 	AddressLine1 string
 	AddressLine2 pgtype.Text
-	Ward         pgtype.Text
+	Ward         string
 	City         string
 	Country      string
-	IsDefault    pgtype.Bool
 	UpdatedAt    time.Time
 }
 
@@ -210,7 +211,6 @@ func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (U
 		arg.Ward,
 		arg.City,
 		arg.Country,
-		arg.IsDefault,
 		arg.UpdatedAt,
 	)
 	var i UserAddress

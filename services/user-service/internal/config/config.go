@@ -1,51 +1,77 @@
 package config
 
 import (
-	"log"
+	"fmt"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	ServiceName               string        `mapstructure:"SERVICE_NAME"`
-	GRPCAddr                  string        `mapstructure:"GRPC_ADDR"`
-	DBUrl                     string        `mapstructure:"DATABASE_URL" validate:"required"`
-	JwtAccessSecret           string        `mapstructure:"JWT_ACCESS_SECRET" validate:"required"`
-	JwtRefreshSecret          string        `mapstructure:"JWT_REFRESH_SECRET" validate:"required"`
-	AccessTokenTTL            time.Duration `mapstructure:"TTL_ACCESS_TOKEN" validate:"required"`
-	RefreshTokenTTL           time.Duration `mapstructure:"TTL_REFRESH_TOKEN" validate:"required"`
-	RegistryTokenExpiry       time.Duration `mapstructure:"REGISTRY_TOKEN_EXPIRY"`
-	ForgotPasswordTokenExpiry time.Duration `mapstructure:"FORGOT_PASSWORD_TOKEN_EXPIRY"`
-	Env                       string        `mapstructure:"ENV" validate:"oneof=DEV STAG PROD TEST"`
-}
-
 var (
-	cfg Config
+	// Service
+	ServiceName string
+	GRPCAddr    string
+	Env         string
+
+	// Database
+	DBUrl string
+
+	// Security
+	JwtAccessSecret  string
+	JwtRefreshSecret string
+	AccessTokenTTL   time.Duration
+	RefreshTokenTTL  time.Duration
+
+	// Redis
+	RedisHost     string
+	RedisPort     int
+	RedisPassword string
+	RedisDB       int
 )
 
-func LoadConfig() *Config {
-	validate := validator.New()
-
+func LoadConfig() error {
 	viper.SetConfigFile(".env")
-	_ = viper.ReadInConfig()
+	err := viper.ReadInConfig()
+	if err != nil {
+		return err
+	}
 
-	viper.AutomaticEnv()
-
+	viper.SetDefault("ENV", "DEV")
 	viper.SetDefault("SERVICE_NAME", "user-service")
-	viper.SetDefault("GRPC_ADDR", ":5000")
-	viper.SetDefault("REGISTRY_TOKEN_EXPIRY", "1h")
-	viper.SetDefault("FORGOT_PASSWORD_TOKEN_EXPIRY", "15m")
-	viper.SetDefault("ENV", "PROD")
+	viper.SetDefault("GRPC_ADDR", "localhost:5001")
+	viper.SetDefault("ACCESS_TOKEN_TTL", "15m")
+	viper.SetDefault("REFRESH_TOKEN_TTL", "168h")
+	viper.SetDefault("REDIS_DB", 0)
 
-	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("cannot load config: %v", err)
+	requiredVars := []string{
+		"DATABASE_URL",
+		"JWT_ACCESS_SECRET",
+		"JWT_REFRESH_SECRET",
+		"REDIS_HOST",
+		"REDIS_PORT",
 	}
 
-	if err := validate.Struct(cfg); err != nil {
-		log.Fatalf("cannot load config: %v", err)
+	for _, key := range requiredVars {
+		if !viper.IsSet(key) {
+			return fmt.Errorf("required environment variable %s is not set", key)
+		}
 	}
 
-	return &cfg
+	Env = viper.GetString("ENV")
+	ServiceName = viper.GetString("SERVICE_NAME")
+	GRPCAddr = viper.GetString("GRPC_ADDR")
+
+	DBUrl = viper.GetString("DATABASE_URL")
+
+	JwtAccessSecret = viper.GetString("JWT_ACCESS_SECRET")
+	JwtRefreshSecret = viper.GetString("JWT_REFRESH_SECRET")
+	AccessTokenTTL = viper.GetDuration("ACCESS_TOKEN_TTL")
+	RefreshTokenTTL = viper.GetDuration("REFRESH_TOKEN_TTL")
+
+	RedisHost = viper.GetString("REDIS_HOST")
+	RedisPort = viper.GetInt("REDIS_PORT")
+	RedisPassword = viper.GetString("REDIS_PASSWORD")
+	RedisDB = viper.GetInt("REDIS_DB")
+
+	return nil
 }

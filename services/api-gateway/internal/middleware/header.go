@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/metadata"
+	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/const/metadata"
 )
 
 func CustomHeaderMatcher(key string) (string, bool) {
