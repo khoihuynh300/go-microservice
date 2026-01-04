@@ -28,8 +28,8 @@ type User struct {
 	Email           string
 	HashedPassword  string
 	FullName        string
-	Phone           string
-	AvatarURL       string
+	Phone           *string
+	AvatarURL       *string
 	DateOfBirth     *time.Time
 	Gender          *Gender
 	Status          UserStatus

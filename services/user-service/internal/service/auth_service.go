@@ -62,7 +62,6 @@ func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest
 		Email:          req.Email,
 		HashedPassword: hashedPassword,
 		FullName:       req.FullName,
-		Phone:          req.Phone,
 		Status:         models.UserStatusPending,
 	}
 

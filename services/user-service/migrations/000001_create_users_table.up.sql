@@ -18,5 +18,6 @@ CREATE TABLE users (
 );
 
 CREATE UNIQUE INDEX idx_users_email_active ON users(email) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_users_phone_active ON users(phone) WHERE deleted_at IS NULL AND phone IS NOT NULL;
 CREATE INDEX idx_users_status ON users(status);
 CREATE INDEX idx_users_created_at ON users(created_at);

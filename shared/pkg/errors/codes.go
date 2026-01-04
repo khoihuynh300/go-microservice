@@ -10,12 +10,16 @@ const (
 	// common errror codes
 	CodeValidationFailed   = "VALIDATION_FAILED"
 	CodeNotFound           = "NOT_FOUND"
+	CodeBadRequest         = "BAD_REQUEST"
 	CodeConflict           = "CONFLICT"
 	CodeAlreadyExists      = "ALREADY_EXISTS"
 	CodeInternal           = "INTERNAL_ERROR"
 	CodeRateLimitExceeded  = "RATE_LIMIT_EXCEEDED"
 	CodeServiceUnavailable = "SERVICE_UNAVAILABLE"
 	CodeTimeout            = "TIMEOUT"
+
+	// invalid format
+	CodeInvalidDateFormat = "INVALID_DATE_FORMAT"
 
 	// auth error codes
 	CodeUnauthenticated    = "UNAUTHENTICATED"
@@ -61,4 +65,14 @@ var (
 
 func NewErrValidationFailed(details []ErrorDetail) *AppError {
 	return New(CodeValidationFailed, "Validation failed", details, http.StatusBadRequest, codes.InvalidArgument)
+}
+
+func NewErrValidationFailedWithDetail(field, code, message string) *AppError {
+	return NewErrValidationFailed([]ErrorDetail{
+		{
+			Field:   field,
+			Code:    code,
+			Message: message,
+		},
+	})
 }

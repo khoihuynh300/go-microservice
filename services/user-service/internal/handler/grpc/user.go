@@ -9,8 +9,8 @@ import (
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/service"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/utils/convert"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type UserHandler struct {
@@ -37,7 +37,6 @@ func (s *UserHandler) Register(ctx context.Context, req *userpb.RegisterRequest)
 		Email:    req.Email,
 		Password: req.Password,
 		FullName: req.FullName,
-		Phone:    req.Phone,
 	}
 
 	user, err := s.authService.Register(ctx, registerReq)
@@ -134,11 +133,18 @@ func (s *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 		return nil, apperr.ErrUnauthenticated
 	}
 
-	dob := req.DateOfBirth.AsTime()
+	dob, err := convert.StringPtrToTimePtr(req.DateOfBirth)
+	if err != nil {
+		return nil, apperr.NewErrValidationFailedWithDetail(
+			"date_of_birth",
+			apperr.CodeInvalidDateFormat,
+			"Date of birth must be in DD-MM-YYYY format",
+		)
+	}
 
 	updateReq := &request.UpdateUserRequest{
 		FullName:    req.FullName,
-		DateOfBirth: &dob,
+		DateOfBirth: dob,
 		Gender:      req.Gender,
 	}
 
@@ -168,7 +174,7 @@ func (s *UserHandler) ChangePassword(ctx context.Context, req *userpb.ChangePass
 		return nil, err
 	}
 
-	return &emptypb.Empty{}, err
+	return &emptypb.Empty{}, nil
 }
 
 func (s *UserHandler) ForgotPassword(ctx context.Context, req *userpb.ForgotPasswordRequest) (*emptypb.Empty, error) {
@@ -294,25 +300,14 @@ func (s *UserHandler) DeleteUserAddress(ctx context.Context, req *userpb.DeleteU
 }
 
 func toUserResponse(user *models.User) *userpb.User {
-	var dateOfBirth *timestamppb.Timestamp = nil
-	if user.DateOfBirth != nil {
-		dateOfBirth = timestamppb.New(*user.DateOfBirth)
-	}
-
-	var gender *string = nil
-	if user.Gender != nil {
-		genderStr := string(*user.Gender)
-		gender = &genderStr
-	}
-
 	return &userpb.User{
 		Id:          user.ID.String(),
 		FullName:    user.FullName,
 		Email:       user.Email,
-		Phone:       user.Phone,
-		DateOfBirth: dateOfBirth,
-		AvatarUrl:   user.AvatarURL,
-		Gender:      gender,
+		Phone:       convert.GenericStringPtrToWrapper(user.Phone),
+		DateOfBirth: convert.TimePtrToDateStringWrapper(user.DateOfBirth),
+		AvatarUrl:   convert.GenericStringPtrToWrapper(user.AvatarURL),
+		Gender:      convert.GenericStringPtrToWrapper(user.Gender),
 		Status:      string(user.Status),
 	}
 }
@@ -321,7 +316,7 @@ func toUserPublicResponse(user *models.User) *userpb.PublicUserProfile {
 	return &userpb.PublicUserProfile{
 		Id:        user.ID.String(),
 		FullName:  user.FullName,
-		AvatarUrl: user.AvatarURL,
+		AvatarUrl: convert.GenericStringPtrToWrapper(user.AvatarURL),
 	}
 }
 

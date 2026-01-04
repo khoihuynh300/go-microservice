@@ -745,9 +745,6 @@
         },
         "fullName": {
           "type": "string"
-        },
-        "phone": {
-          "type": "string"
         }
       }
     },
@@ -804,8 +801,7 @@
           "type": "string"
         },
         "dateOfBirth": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         },
         "gender": {
           "type": "string"
@@ -839,8 +835,7 @@
           "type": "string"
         },
         "dateOfBirth": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         },
         "gender": {
           "type": "string"

@@ -81,6 +81,9 @@ func run() error {
 		Password: config.RedisPassword,
 		DB:       config.RedisDB,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to init redis: %w", err)
+	}
 	tokenCache := caching.NewTokenCache(redis)
 
 	// services

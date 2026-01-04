@@ -10,10 +10,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/khoihuynh300/go-microservice/user-service/internal/db/convert"
 	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/utils/convert"
 )
 
 type userRepository struct {
@@ -35,7 +35,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 		Email:          user.Email,
 		HashedPassword: user.HashedPassword,
 		FullName:       user.FullName,
-		Phone:          pgtype.Text{String: user.Phone, Valid: true},
+		Phone:          convert.PtrToText(user.Phone),
 		Status:         sqlc.UserStatusEnum(user.Status),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
@@ -110,8 +110,8 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	params := sqlc.UpdateUserParams{
 		ID:              user.ID,
 		FullName:        user.FullName,
-		Phone:           pgtype.Text{String: user.Phone, Valid: true},
-		AvatarUrl:       pgtype.Text{String: user.AvatarURL, Valid: true},
+		Phone:           convert.PtrToText(user.Phone),
+		AvatarUrl:       convert.PtrToText(user.AvatarURL),
 		DateOfBirth:     convert.PtrToDate(user.DateOfBirth),
 		Gender:          convert.PtrToGenderEnum(user.Gender),
 		UpdatedAt:       time.Now(),
@@ -160,8 +160,8 @@ func (r *userRepository) mapToUser(row sqlc.User) *models.User {
 		Email:           row.Email,
 		HashedPassword:  row.HashedPassword,
 		FullName:        row.FullName,
-		Phone:           row.Phone.String,
-		AvatarURL:       row.AvatarUrl.String,
+		Phone:           convert.PtrIfValid(row.Phone.String, row.Phone.Valid),
+		AvatarURL:       convert.PtrIfValid(row.AvatarUrl.String, row.AvatarUrl.Valid),
 		Gender:          convert.PtrIfValid(models.Gender(row.Gender.UserGenderEnum), row.Gender.Valid),
 		DateOfBirth:     convert.PtrIfValid(row.DateOfBirth.Time, row.DateOfBirth.Valid),
 		EmailVerifiedAt: convert.PtrIfValid(row.EmailVerifiedAt.Time, row.EmailVerifiedAt.Valid),

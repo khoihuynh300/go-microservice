@@ -12,7 +12,8 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	_ "google.golang.org/protobuf/types/known/timestamppb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -30,7 +31,6 @@ type RegisterRequest struct {
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	FullName      string                 `protobuf:"bytes,3,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
-	Phone         string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -82,13 +82,6 @@ func (x *RegisterRequest) GetPassword() string {
 func (x *RegisterRequest) GetFullName() string {
 	if x != nil {
 		return x.FullName
-	}
-	return ""
-}
-
-func (x *RegisterRequest) GetPhone() string {
-	if x != nil {
-		return x.Phone
 	}
 	return ""
 }
@@ -508,7 +501,7 @@ func (x *GetPublicUserResponse) GetUser() *PublicUserProfile {
 type UpdateUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FullName      *string                `protobuf:"bytes,1,opt,name=full_name,json=fullName,proto3,oneof" json:"full_name,omitempty"`
-	DateOfBirth   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_of_birth,json=dateOfBirth,proto3,oneof" json:"date_of_birth,omitempty"`
+	DateOfBirth   *string                `protobuf:"bytes,2,opt,name=date_of_birth,json=dateOfBirth,proto3,oneof" json:"date_of_birth,omitempty"`
 	Gender        *string                `protobuf:"bytes,3,opt,name=gender,proto3,oneof" json:"gender,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -551,11 +544,11 @@ func (x *UpdateUserRequest) GetFullName() string {
 	return ""
 }
 
-func (x *UpdateUserRequest) GetDateOfBirth() *timestamppb.Timestamp {
-	if x != nil {
-		return x.DateOfBirth
+func (x *UpdateUserRequest) GetDateOfBirth() string {
+	if x != nil && x.DateOfBirth != nil {
+		return *x.DateOfBirth
 	}
-	return nil
+	return ""
 }
 
 func (x *UpdateUserRequest) GetGender() string {
@@ -1290,15 +1283,15 @@ func (x *SetDefaultUserAddressRequest) GetAddressId() string {
 }
 
 type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	FullName      string                 `protobuf:"bytes,2,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Phone         string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
-	AvatarUrl     string                 `protobuf:"bytes,5,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
-	DateOfBirth   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_of_birth,json=dateOfBirth,proto3,oneof" json:"date_of_birth,omitempty"`
-	Gender        *string                `protobuf:"bytes,7,opt,name=gender,proto3,oneof" json:"gender,omitempty"`
-	Status        string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Id            string                  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	FullName      string                  `protobuf:"bytes,2,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	Email         string                  `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Phone         *wrapperspb.StringValue `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	AvatarUrl     *wrapperspb.StringValue `protobuf:"bytes,5,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	DateOfBirth   *wrapperspb.StringValue `protobuf:"bytes,6,opt,name=date_of_birth,json=dateOfBirth,proto3" json:"date_of_birth,omitempty"`
+	Gender        *wrapperspb.StringValue `protobuf:"bytes,7,opt,name=gender,proto3" json:"gender,omitempty"`
+	Status        string                  `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1354,32 +1347,32 @@ func (x *User) GetEmail() string {
 	return ""
 }
 
-func (x *User) GetPhone() string {
+func (x *User) GetPhone() *wrapperspb.StringValue {
 	if x != nil {
 		return x.Phone
 	}
-	return ""
+	return nil
 }
 
-func (x *User) GetAvatarUrl() string {
+func (x *User) GetAvatarUrl() *wrapperspb.StringValue {
 	if x != nil {
 		return x.AvatarUrl
 	}
-	return ""
+	return nil
 }
 
-func (x *User) GetDateOfBirth() *timestamppb.Timestamp {
+func (x *User) GetDateOfBirth() *wrapperspb.StringValue {
 	if x != nil {
 		return x.DateOfBirth
 	}
 	return nil
 }
 
-func (x *User) GetGender() string {
-	if x != nil && x.Gender != nil {
-		return *x.Gender
+func (x *User) GetGender() *wrapperspb.StringValue {
+	if x != nil {
+		return x.Gender
 	}
-	return ""
+	return nil
 }
 
 func (x *User) GetStatus() string {
@@ -1390,10 +1383,10 @@ func (x *User) GetStatus() string {
 }
 
 type PublicUserProfile struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	FullName      string                 `protobuf:"bytes,2,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
-	AvatarUrl     string                 `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Id            string                  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	FullName      string                  `protobuf:"bytes,2,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	AvatarUrl     *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1442,11 +1435,11 @@ func (x *PublicUserProfile) GetFullName() string {
 	return ""
 }
 
-func (x *PublicUserProfile) GetAvatarUrl() string {
+func (x *PublicUserProfile) GetAvatarUrl() *wrapperspb.StringValue {
 	if x != nil {
 		return x.AvatarUrl
 	}
-	return ""
+	return nil
 }
 
 type Address struct {
@@ -1577,12 +1570,11 @@ var File_user_user_proto protoreflect.FileDescriptor
 
 const file_user_user_proto_rawDesc = "" +
 	"\n" +
-	"\x0fuser/user.proto\x12\x04user\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\"\xaa\x01\n" +
+	"\x0fuser/user.proto\x12\x04user\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\"}\n" +
 	"\x0fRegisterRequest\x12\x1d\n" +
 	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12%\n" +
 	"\bpassword\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\b\x18@R\bpassword\x12$\n" +
-	"\tfull_name\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfullName\x12+\n" +
-	"\x05phone\x18\x04 \x01(\tB\x15\xbaH\x12r\x102\x0e^[0-9]{10,15}$R\x05phone\"+\n" +
+	"\tfull_name\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfullName\"+\n" +
 	"\x10RegisterResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
 	"\x12VerifyEmailRequest\x12*\n" +
@@ -1603,11 +1595,11 @@ const file_user_user_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\n" +
 	".user.UserR\x04user\"D\n" +
 	"\x15GetPublicUserResponse\x12+\n" +
-	"\x04user\x18\x01 \x01(\v2\x17.user.PublicUserProfileR\x04user\"\xcb\x01\n" +
+	"\x04user\x18\x01 \x01(\v2\x17.user.PublicUserProfileR\x04user\"\x8a\x02\n" +
 	"\x11UpdateUserRequest\x12)\n" +
-	"\tfull_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01H\x00R\bfullName\x88\x01\x01\x12C\n" +
-	"\rdate_of_birth\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\vdateOfBirth\x88\x01\x01\x12\x1b\n" +
-	"\x06gender\x18\x03 \x01(\tH\x02R\x06gender\x88\x01\x01B\f\n" +
+	"\tfull_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01H\x00R\bfullName\x88\x01\x01\x12f\n" +
+	"\rdate_of_birth\x18\x02 \x01(\tB=\xbaH:r826^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(19|20)\\d\\d$H\x01R\vdateOfBirth\x88\x01\x01\x127\n" +
+	"\x06gender\x18\x03 \x01(\tB\x1a\xbaH\x17r\x15R\x04maleR\x06femaleR\x05otherH\x02R\x06gender\x88\x01\x01B\f\n" +
 	"\n" +
 	"_full_nameB\x10\n" +
 	"\x0e_date_of_birthB\t\n" +
@@ -1676,24 +1668,22 @@ const file_user_user_proto_rawDesc = "" +
 	"address_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taddressId\"G\n" +
 	"\x1cSetDefaultUserAddressRequest\x12'\n" +
 	"\n" +
-	"address_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taddressId\"\x95\x02\n" +
+	"address_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\taddressId\"\xca\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12\x14\n" +
-	"\x05phone\x18\x04 \x01(\tR\x05phone\x12\x1d\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x122\n" +
+	"\x05phone\x18\x04 \x01(\v2\x1c.google.protobuf.StringValueR\x05phone\x12;\n" +
 	"\n" +
-	"avatar_url\x18\x05 \x01(\tR\tavatarUrl\x12C\n" +
-	"\rdate_of_birth\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\vdateOfBirth\x88\x01\x01\x12\x1b\n" +
-	"\x06gender\x18\a \x01(\tH\x01R\x06gender\x88\x01\x01\x12\x16\n" +
-	"\x06status\x18\b \x01(\tR\x06statusB\x10\n" +
-	"\x0e_date_of_birthB\t\n" +
-	"\a_gender\"_\n" +
+	"avatar_url\x18\x05 \x01(\v2\x1c.google.protobuf.StringValueR\tavatarUrl\x12@\n" +
+	"\rdate_of_birth\x18\x06 \x01(\v2\x1c.google.protobuf.StringValueR\vdateOfBirth\x124\n" +
+	"\x06gender\x18\a \x01(\v2\x1c.google.protobuf.StringValueR\x06gender\x12\x16\n" +
+	"\x06status\x18\b \x01(\tR\x06status\"}\n" +
 	"\x11PublicUserProfile\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x1d\n" +
+	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12;\n" +
 	"\n" +
-	"avatar_url\x18\x03 \x01(\tR\tavatarUrl\"\xb3\x02\n" +
+	"avatar_url\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\tavatarUrl\"\xb3\x02\n" +
 	"\aAddress\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
@@ -1769,56 +1759,59 @@ var file_user_user_proto_goTypes = []any{
 	(*User)(nil),                           // 24: user.User
 	(*PublicUserProfile)(nil),              // 25: user.PublicUserProfile
 	(*Address)(nil),                        // 26: user.Address
-	(*timestamppb.Timestamp)(nil),          // 27: google.protobuf.Timestamp
+	(*wrapperspb.StringValue)(nil),         // 27: google.protobuf.StringValue
 	(*emptypb.Empty)(nil),                  // 28: google.protobuf.Empty
 }
 var file_user_user_proto_depIdxs = []int32{
 	24, // 0: user.GetUserResponse.user:type_name -> user.User
 	25, // 1: user.GetPublicUserResponse.user:type_name -> user.PublicUserProfile
-	27, // 2: user.UpdateUserRequest.date_of_birth:type_name -> google.protobuf.Timestamp
-	24, // 3: user.UpdateUserResponse.user:type_name -> user.User
-	26, // 4: user.CreateUserAddressResponse.address:type_name -> user.Address
-	26, // 5: user.UpdateUserAddressResponse.address:type_name -> user.Address
-	26, // 6: user.GetUserAddressesResponse.addresses:type_name -> user.Address
-	26, // 7: user.GetUserAddressResponse.address:type_name -> user.Address
-	27, // 8: user.User.date_of_birth:type_name -> google.protobuf.Timestamp
-	0,  // 9: user.UserService.Register:input_type -> user.RegisterRequest
-	2,  // 10: user.UserService.VerifyEmail:input_type -> user.VerifyEmailRequest
-	3,  // 11: user.UserService.ResendVerificationEmail:input_type -> user.ResendVerificationEmailRequest
-	4,  // 12: user.UserService.Login:input_type -> user.LoginRequest
-	6,  // 13: user.UserService.Refresh:input_type -> user.RefreshRequest
-	7,  // 14: user.UserService.GetUser:input_type -> user.GetUserRequest
-	28, // 15: user.UserService.GetMe:input_type -> google.protobuf.Empty
-	10, // 16: user.UserService.UpdateUser:input_type -> user.UpdateUserRequest
-	12, // 17: user.UserService.ChangePassword:input_type -> user.ChangePasswordRequest
-	13, // 18: user.UserService.ForgotPassword:input_type -> user.ForgotPasswordRequest
-	14, // 19: user.UserService.ResetPassword:input_type -> user.ResetPasswordRequest
-	15, // 20: user.UserService.CreateUserAddress:input_type -> user.CreateUserAddressRequest
-	28, // 21: user.UserService.GetUserAddresses:input_type -> google.protobuf.Empty
-	20, // 22: user.UserService.GetUserAddress:input_type -> user.GetUserAddressRequest
-	17, // 23: user.UserService.UpdateUserAddress:input_type -> user.UpdateUserAddressRequest
-	22, // 24: user.UserService.DeleteUserAddress:input_type -> user.DeleteUserAddressRequest
-	1,  // 25: user.UserService.Register:output_type -> user.RegisterResponse
-	28, // 26: user.UserService.VerifyEmail:output_type -> google.protobuf.Empty
-	28, // 27: user.UserService.ResendVerificationEmail:output_type -> google.protobuf.Empty
-	5,  // 28: user.UserService.Login:output_type -> user.TokenResponse
-	5,  // 29: user.UserService.Refresh:output_type -> user.TokenResponse
-	9,  // 30: user.UserService.GetUser:output_type -> user.GetPublicUserResponse
-	8,  // 31: user.UserService.GetMe:output_type -> user.GetUserResponse
-	11, // 32: user.UserService.UpdateUser:output_type -> user.UpdateUserResponse
-	28, // 33: user.UserService.ChangePassword:output_type -> google.protobuf.Empty
-	28, // 34: user.UserService.ForgotPassword:output_type -> google.protobuf.Empty
-	28, // 35: user.UserService.ResetPassword:output_type -> google.protobuf.Empty
-	16, // 36: user.UserService.CreateUserAddress:output_type -> user.CreateUserAddressResponse
-	19, // 37: user.UserService.GetUserAddresses:output_type -> user.GetUserAddressesResponse
-	21, // 38: user.UserService.GetUserAddress:output_type -> user.GetUserAddressResponse
-	18, // 39: user.UserService.UpdateUserAddress:output_type -> user.UpdateUserAddressResponse
-	28, // 40: user.UserService.DeleteUserAddress:output_type -> google.protobuf.Empty
-	25, // [25:41] is the sub-list for method output_type
-	9,  // [9:25] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	24, // 2: user.UpdateUserResponse.user:type_name -> user.User
+	26, // 3: user.CreateUserAddressResponse.address:type_name -> user.Address
+	26, // 4: user.UpdateUserAddressResponse.address:type_name -> user.Address
+	26, // 5: user.GetUserAddressesResponse.addresses:type_name -> user.Address
+	26, // 6: user.GetUserAddressResponse.address:type_name -> user.Address
+	27, // 7: user.User.phone:type_name -> google.protobuf.StringValue
+	27, // 8: user.User.avatar_url:type_name -> google.protobuf.StringValue
+	27, // 9: user.User.date_of_birth:type_name -> google.protobuf.StringValue
+	27, // 10: user.User.gender:type_name -> google.protobuf.StringValue
+	27, // 11: user.PublicUserProfile.avatar_url:type_name -> google.protobuf.StringValue
+	0,  // 12: user.UserService.Register:input_type -> user.RegisterRequest
+	2,  // 13: user.UserService.VerifyEmail:input_type -> user.VerifyEmailRequest
+	3,  // 14: user.UserService.ResendVerificationEmail:input_type -> user.ResendVerificationEmailRequest
+	4,  // 15: user.UserService.Login:input_type -> user.LoginRequest
+	6,  // 16: user.UserService.Refresh:input_type -> user.RefreshRequest
+	7,  // 17: user.UserService.GetUser:input_type -> user.GetUserRequest
+	28, // 18: user.UserService.GetMe:input_type -> google.protobuf.Empty
+	10, // 19: user.UserService.UpdateUser:input_type -> user.UpdateUserRequest
+	12, // 20: user.UserService.ChangePassword:input_type -> user.ChangePasswordRequest
+	13, // 21: user.UserService.ForgotPassword:input_type -> user.ForgotPasswordRequest
+	14, // 22: user.UserService.ResetPassword:input_type -> user.ResetPasswordRequest
+	15, // 23: user.UserService.CreateUserAddress:input_type -> user.CreateUserAddressRequest
+	28, // 24: user.UserService.GetUserAddresses:input_type -> google.protobuf.Empty
+	20, // 25: user.UserService.GetUserAddress:input_type -> user.GetUserAddressRequest
+	17, // 26: user.UserService.UpdateUserAddress:input_type -> user.UpdateUserAddressRequest
+	22, // 27: user.UserService.DeleteUserAddress:input_type -> user.DeleteUserAddressRequest
+	1,  // 28: user.UserService.Register:output_type -> user.RegisterResponse
+	28, // 29: user.UserService.VerifyEmail:output_type -> google.protobuf.Empty
+	28, // 30: user.UserService.ResendVerificationEmail:output_type -> google.protobuf.Empty
+	5,  // 31: user.UserService.Login:output_type -> user.TokenResponse
+	5,  // 32: user.UserService.Refresh:output_type -> user.TokenResponse
+	9,  // 33: user.UserService.GetUser:output_type -> user.GetPublicUserResponse
+	8,  // 34: user.UserService.GetMe:output_type -> user.GetUserResponse
+	11, // 35: user.UserService.UpdateUser:output_type -> user.UpdateUserResponse
+	28, // 36: user.UserService.ChangePassword:output_type -> google.protobuf.Empty
+	28, // 37: user.UserService.ForgotPassword:output_type -> google.protobuf.Empty
+	28, // 38: user.UserService.ResetPassword:output_type -> google.protobuf.Empty
+	16, // 39: user.UserService.CreateUserAddress:output_type -> user.CreateUserAddressResponse
+	19, // 40: user.UserService.GetUserAddresses:output_type -> user.GetUserAddressesResponse
+	21, // 41: user.UserService.GetUserAddress:output_type -> user.GetUserAddressResponse
+	18, // 42: user.UserService.UpdateUserAddress:output_type -> user.UpdateUserAddressResponse
+	28, // 43: user.UserService.DeleteUserAddress:output_type -> google.protobuf.Empty
+	28, // [28:44] is the sub-list for method output_type
+	12, // [12:28] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_user_user_proto_init() }
@@ -1828,7 +1821,6 @@ func file_user_user_proto_init() {
 	}
 	file_user_user_proto_msgTypes[10].OneofWrappers = []any{}
 	file_user_user_proto_msgTypes[17].OneofWrappers = []any{}
-	file_user_user_proto_msgTypes[24].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
