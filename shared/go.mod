@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20251209175733-2a1774d88802.1
 	buf.build/go/protovalidate v1.1.0
+	github.com/golang/mock v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3
 	github.com/redis/go-redis/v9 v9.17.2
 	go.uber.org/zap v1.27.1

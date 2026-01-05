@@ -78,34 +78,6 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 	return r.mapToUser(row), nil
 }
 
-func (r *userRepository) List(ctx context.Context, status models.UserStatus, limit, offset int) ([]*models.User, error) {
-	params := sqlc.ListUsersParams{
-		Status: sqlc.UserStatusEnum(status),
-		Limit:  int32(limit),
-		Offset: int32(offset),
-	}
-
-	rows, err := r.queries(ctx).ListUsers(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-
-	users := make([]*models.User, 0, len(rows))
-	for i, row := range rows {
-		users[i] = r.mapToUser(row)
-	}
-	return users, nil
-}
-
-func (r *userRepository) Count(ctx context.Context, status models.UserStatus) (int64, error) {
-	count, err := r.queries(ctx).CountUsers(ctx, sqlc.UserStatusEnum(status))
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
-}
-
 func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	params := sqlc.UpdateUserParams{
 		ID:              user.ID,

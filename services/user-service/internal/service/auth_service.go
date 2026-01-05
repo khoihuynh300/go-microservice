@@ -23,7 +23,7 @@ type AuthService struct {
 	refreshTokenRepo repository.RefreshTokenRepository
 	tokenCache       *caching.TokenCache
 	passwordHasher   passwordhasher.PasswordHasher
-	jwtService       *jwtprovider.JwtService
+	jwtService       jwtprovider.JwtProvider
 }
 
 func NewAuthService(
@@ -31,7 +31,7 @@ func NewAuthService(
 	refreshTokenRepo repository.RefreshTokenRepository,
 	tokenCache *caching.TokenCache,
 	passwordHasher passwordhasher.PasswordHasher,
-	jwtService *jwtprovider.JwtService,
+	jwtService jwtprovider.JwtProvider,
 ) *AuthService {
 	return &AuthService{
 		userRepo:         userRepo,
