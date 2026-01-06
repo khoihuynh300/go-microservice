@@ -21,6 +21,10 @@ test-unit:
 test-integration:
 	go test -v ./tests/integration/...
 
+test-coverage:
+	go test -coverpkg=./... ./...
+	go tool cover -html=coverage.out
+
 create-migration:
 	migrate create -ext sql -dir migrations -seq $(name)
 
