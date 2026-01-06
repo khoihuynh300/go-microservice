@@ -21,7 +21,7 @@ type AddressServiceTestSuite struct {
 	ctrl           *gomock.Controller
 	userRepo       *mock_repository.MockUserRepository
 	addressRepo    *mock_repository.MockAddressRepository
-	addressService *service.AddressService
+	addressService service.AddressService
 }
 
 func NewAddressServiceTestSuite(t *testing.T) *AddressServiceTestSuite {

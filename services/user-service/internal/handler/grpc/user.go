@@ -15,15 +15,15 @@ import (
 
 type UserHandler struct {
 	userpb.UnimplementedUserServiceServer
-	authService    *service.AuthService
-	userService    *service.UserService
-	addressService *service.AddressService
+	authService    service.AuthService
+	userService    service.UserService
+	addressService service.AddressService
 }
 
 func NewUserHandler(
-	authService *service.AuthService,
-	userService *service.UserService,
-	addressService *service.AddressService,
+	authService service.AuthService,
+	userService service.UserService,
+	addressService service.AddressService,
 ) *UserHandler {
 	return &UserHandler{
 		authService:    authService,

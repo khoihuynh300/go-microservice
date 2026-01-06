@@ -21,7 +21,7 @@ import (
 type UserServiceTestSuite struct {
 	ctrl        *gomock.Controller
 	userRepo    *mock_repository.MockUserRepository
-	userService *service.UserService
+	userService service.UserService
 }
 
 func NewUserServiceTestSuite(t *testing.T) *UserServiceTestSuite {

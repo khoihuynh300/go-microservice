@@ -34,7 +34,7 @@ type AuthServiceTestSuite struct {
 
 	tokenCache *caching.TokenCache
 
-	authService *service.AuthService
+	authService service.AuthService
 }
 
 func setupAuthServiceTestSuite(t *testing.T) *AuthServiceTestSuite {
