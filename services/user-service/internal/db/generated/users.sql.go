@@ -13,25 +13,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countUsers = `-- name: CountUsers :one
-SELECT COUNT(*) FROM users
-WHERE status = $1
-`
-
-func (q *Queries) CountUsers(ctx context.Context, status UserStatusEnum) (int64, error) {
-	row := q.db.QueryRow(ctx, countUsers, status)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    id, email, hashed_password, full_name, phone, status, created_at, updated_at
+    id, email, hashed_password, full_name, status, created_at, updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at
+RETURNING
+    id,
+    email,
+    full_name,
+    status,
+    created_at,
+    updated_at
 `
 
 type CreateUserParams struct {
@@ -39,38 +33,38 @@ type CreateUserParams struct {
 	Email          string
 	HashedPassword string
 	FullName       string
-	Phone          pgtype.Text
 	Status         UserStatusEnum
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID        uuid.UUID
+	Email     string
+	FullName  string
+	Status    UserStatusEnum
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.ID,
 		arg.Email,
 		arg.HashedPassword,
 		arg.FullName,
-		arg.Phone,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.HashedPassword,
 		&i.FullName,
-		&i.Phone,
-		&i.AvatarUrl,
-		&i.DateOfBirth,
-		&i.Gender,
 		&i.Status,
-		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -103,7 +97,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at FROM users
-WHERE id = $1 AND deleted_at IS NULL LIMIT 1
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -127,131 +121,85 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
-const listUsers = `-- name: ListUsers :many
-SELECT id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at FROM users
-WHERE status = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
-`
-
-type ListUsersParams struct {
-	Status UserStatusEnum
-	Limit  int32
-	Offset int32
-}
-
-func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUsers, arg.Status, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Email,
-			&i.HashedPassword,
-			&i.FullName,
-			&i.Phone,
-			&i.AvatarUrl,
-			&i.DateOfBirth,
-			&i.Gender,
-			&i.Status,
-			&i.EmailVerifiedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const softDeleteUser = `-- name: SoftDeleteUser :exec
+const softDeleteUser = `-- name: SoftDeleteUser :execrows
 UPDATE users
-SET deleted_at = $2
-WHERE id = $1
+SET deleted_at = $2, updated_at = $3
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 type SoftDeleteUserParams struct {
 	ID        uuid.UUID
 	DeletedAt pgtype.Timestamptz
+	UpdatedAt time.Time
 }
 
-func (q *Queries) SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error {
-	_, err := q.db.Exec(ctx, softDeleteUser, arg.ID, arg.DeletedAt)
-	return err
+func (q *Queries) SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteUser, arg.ID, arg.DeletedAt, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const updateUser = `-- name: UpdateUser :one
+const updateUser = `-- name: UpdateUser :execrows
 UPDATE users
 SET
     full_name = $2,
     phone = $3,
-    avatar_url = $4,
-    date_of_birth = $5,
-    gender = $6,
-    updated_at = $7,
-    status = $8,
-    email_verified_at = $9
-WHERE id = $1
-RETURNING id, email, hashed_password, full_name, phone, avatar_url, date_of_birth, gender, status, email_verified_at, created_at, updated_at, deleted_at
+    date_of_birth = $4,
+    gender = $5,
+    updated_at = $6
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 type UpdateUserParams struct {
-	ID              uuid.UUID
-	FullName        string
-	Phone           pgtype.Text
-	AvatarUrl       pgtype.Text
-	DateOfBirth     pgtype.Date
-	Gender          NullUserGenderEnum
-	UpdatedAt       time.Time
-	Status          UserStatusEnum
-	EmailVerifiedAt pgtype.Timestamptz
+	ID          uuid.UUID
+	FullName    string
+	Phone       pgtype.Text
+	DateOfBirth pgtype.Date
+	Gender      NullUserGenderEnum
+	UpdatedAt   time.Time
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser,
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUser,
 		arg.ID,
 		arg.FullName,
 		arg.Phone,
-		arg.AvatarUrl,
 		arg.DateOfBirth,
 		arg.Gender,
 		arg.UpdatedAt,
-		arg.Status,
-		arg.EmailVerifiedAt,
 	)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.HashedPassword,
-		&i.FullName,
-		&i.Phone,
-		&i.AvatarUrl,
-		&i.DateOfBirth,
-		&i.Gender,
-		&i.Status,
-		&i.EmailVerifiedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
-	return i, err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const updateUserPassword = `-- name: UpdateUserPassword :exec
+const updateUserAvatar = `-- name: UpdateUserAvatar :execrows
+UPDATE users
+SET avatar_url = $2, updated_at = $3
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UpdateUserAvatarParams struct {
+	ID        uuid.UUID
+	AvatarUrl pgtype.Text
+	UpdatedAt time.Time
+}
+
+func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUserAvatar, arg.ID, arg.AvatarUrl, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :execrows
 UPDATE users
 SET hashed_password = $2, updated_at = $3
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 type UpdateUserPasswordParams struct {
@@ -260,15 +208,18 @@ type UpdateUserPasswordParams struct {
 	UpdatedAt      time.Time
 }
 
-func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.HashedPassword, arg.UpdatedAt)
-	return err
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.HashedPassword, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const updateUserStatus = `-- name: UpdateUserStatus :exec
+const updateUserStatus = `-- name: UpdateUserStatus :execrows
 UPDATE users
 SET status = $2, updated_at = $3
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 type UpdateUserStatusParams struct {
@@ -277,7 +228,30 @@ type UpdateUserStatusParams struct {
 	UpdatedAt time.Time
 }
 
-func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) error {
-	_, err := q.db.Exec(ctx, updateUserStatus, arg.ID, arg.Status, arg.UpdatedAt)
-	return err
+func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUserStatus, arg.ID, arg.Status, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const verifyUserEmail = `-- name: VerifyUserEmail :execrows
+UPDATE users
+SET email_verified_at = $2, updated_at = $3
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type VerifyUserEmailParams struct {
+	ID              uuid.UUID
+	EmailVerifiedAt pgtype.Timestamptz
+	UpdatedAt       time.Time
+}
+
+func (q *Queries) VerifyUserEmail(ctx context.Context, arg VerifyUserEmailParams) (int64, error) {
+	result, err := q.db.Exec(ctx, verifyUserEmail, arg.ID, arg.EmailVerifiedAt, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

@@ -30,7 +30,7 @@ func (s *UserService) GetUserByID(ctx context.Context, userID string) (*models.U
 		return nil, err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, userUUID)
+	user, err := s.userRepo.GetByID(ctx, userUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (s *UserService) UpdateUser(ctx context.Context, userID string, updateData 
 		return nil, err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, userUUID)
+	user, err := s.userRepo.GetByID(ctx, userUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,9 +68,12 @@ func (s *UserService) UpdateUser(ctx context.Context, userID string, updateData 
 		user.Gender = &updateGender
 	}
 
-	err = s.userRepo.Update(ctx, user)
+	rowEffected, err := s.userRepo.Update(ctx, user)
 	if err != nil {
 		return nil, err
+	}
+	if rowEffected == 0 {
+		return nil, apperr.ErrUserNotFound
 	}
 
 	logger.Info("Updated user profile", zap.String("userID", userID))

@@ -10,6 +10,6 @@ INSERT INTO refresh_tokens (
     $1, $2, $3, $4, $5
 );
 
--- name: DeleteRefreshTokenByID :exec
+-- name: DeleteRefreshTokenByID :execrows
 DELETE FROM refresh_tokens
 WHERE id = $1;

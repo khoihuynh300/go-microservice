@@ -36,12 +36,27 @@ func (m *MockRefreshTokenRepository) EXPECT() *MockRefreshTokenRepositoryMockRec
 	return m.recorder
 }
 
-// DeleteByID mocks base method.
-func (m *MockRefreshTokenRepository) DeleteByID(arg0 context.Context, arg1 uuid.UUID) error {
+// Create mocks base method.
+func (m *MockRefreshTokenRepository) Create(arg0 context.Context, arg1 *models.RefreshToken) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteByID", arg0, arg1)
+	ret := m.ctrl.Call(m, "Create", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockRefreshTokenRepositoryMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRefreshTokenRepository)(nil).Create), arg0, arg1)
+}
+
+// DeleteByID mocks base method.
+func (m *MockRefreshTokenRepository) DeleteByID(arg0 context.Context, arg1 uuid.UUID) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteByID", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // DeleteByID indicates an expected call of DeleteByID.
@@ -50,33 +65,19 @@ func (mr *MockRefreshTokenRepositoryMockRecorder) DeleteByID(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByID", reflect.TypeOf((*MockRefreshTokenRepository)(nil).DeleteByID), arg0, arg1)
 }
 
-// FindByToken mocks base method.
-func (m *MockRefreshTokenRepository) FindByToken(arg0 context.Context, arg1 string) (*models.RefreshToken, error) {
+// GetByToken mocks base method.
+func (m *MockRefreshTokenRepository) GetByToken(arg0 context.Context, arg1 string) (*models.RefreshToken, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByToken", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetByToken", arg0, arg1)
 	ret0, _ := ret[0].(*models.RefreshToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindByToken indicates an expected call of FindByToken.
-func (mr *MockRefreshTokenRepositoryMockRecorder) FindByToken(arg0, arg1 interface{}) *gomock.Call {
+// GetByToken indicates an expected call of GetByToken.
+func (mr *MockRefreshTokenRepositoryMockRecorder) GetByToken(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByToken", reflect.TypeOf((*MockRefreshTokenRepository)(nil).FindByToken), arg0, arg1)
-}
-
-// Save mocks base method.
-func (m *MockRefreshTokenRepository) Save(arg0 context.Context, arg1 *models.RefreshToken) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Save", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Save indicates an expected call of Save.
-func (mr *MockRefreshTokenRepositoryMockRecorder) Save(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockRefreshTokenRepository)(nil).Save), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByToken", reflect.TypeOf((*MockRefreshTokenRepository)(nil).GetByToken), arg0, arg1)
 }
 
 // WithinTransaction mocks base method.

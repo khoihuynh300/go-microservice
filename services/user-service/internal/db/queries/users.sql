@@ -1,6 +1,6 @@
 -- name: GetUserByID :one
 SELECT * FROM users
-WHERE id = $1 AND deleted_at IS NULL LIMIT 1;
+WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
 SELECT * FROM users
@@ -8,47 +8,49 @@ WHERE email = $1 AND deleted_at IS NULL LIMIT 1;
 
 -- name: CreateUser :one
 INSERT INTO users (
-    id, email, hashed_password, full_name, phone, status, created_at, updated_at
+    id, email, hashed_password, full_name, status, created_at, updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING *;
+RETURNING
+    id,
+    email,
+    full_name,
+    status,
+    created_at,
+    updated_at;
 
--- name: UpdateUser :one
+-- name: UpdateUser :execrows
 UPDATE users
 SET
     full_name = $2,
     phone = $3,
-    avatar_url = $4,
-    date_of_birth = $5,
-    gender = $6,
-    updated_at = $7,
-    status = $8,
-    email_verified_at = $9
-WHERE id = $1
-RETURNING *;
+    date_of_birth = $4,
+    gender = $5,
+    updated_at = $6
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: UpdateUserPassword :exec
+-- name: UpdateUserAvatar :execrows
+UPDATE users
+SET avatar_url = $2, updated_at = $3
+WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: VerifyUserEmail :execrows
+UPDATE users
+SET email_verified_at = $2, updated_at = $3
+WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: UpdateUserPassword :execrows
 UPDATE users
 SET hashed_password = $2, updated_at = $3
-WHERE id = $1;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: UpdateUserStatus :exec
+-- name: UpdateUserStatus :execrows
 UPDATE users
 SET status = $2, updated_at = $3
-WHERE id = $1;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: ListUsers :many
-SELECT * FROM users
-WHERE status = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3;
-
--- name: CountUsers :one
-SELECT COUNT(*) FROM users
-WHERE status = $1;
-
--- name: SoftDeleteUser :exec
+-- name: SoftDeleteUser :execrows
 UPDATE users
-SET deleted_at = $2
-WHERE id = $1;
+SET deleted_at = $2, updated_at = $3
+WHERE id = $1 AND deleted_at IS NULL;

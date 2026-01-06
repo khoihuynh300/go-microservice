@@ -82,7 +82,7 @@ func TestAuthService_Register(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
 					})
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "test@gmail.com").Return(nil, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "test@gmail.com").Return(nil, nil)
 				s.passwordHasher.EXPECT().Hash("passwrod123").Return("hashedpassword", nil)
 				s.userRepo.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
@@ -113,7 +113,7 @@ func TestAuthService_Register(t *testing.T) {
 					Email: "existing@gmail.com",
 				}
 				s.userRepo.EXPECT().
-					FindByEmail(gomock.Any(), "existing@gmail.com").
+					GetByEmail(gomock.Any(), "existing@gmail.com").
 					Return(existingUser, nil)
 			},
 			expectedError: apperr.ErrEmailAlreadyExists,
@@ -161,8 +161,9 @@ func TestAuthService_VerifyEmail(t *testing.T) {
 					Email:  "test@gmail.com",
 					Status: models.UserStatusPending,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "test@gmail.com").Return(user, nil)
-				s.userRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "test@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().VerifyEmail(gomock.Any(), user.ID).Return(int64(1), nil)
+				s.userRepo.EXPECT().UpdateStatus(gomock.Any(), user.ID, models.UserStatusActive).Return(int64(1), nil)
 			},
 			expectedError: nil,
 		},
@@ -180,7 +181,7 @@ func TestAuthService_VerifyEmail(t *testing.T) {
 			setupMock: func(s *AuthServiceTestSuite) {
 				s.cache.EXPECT().Get(gomock.Any(), gomock.Any()).Return("notfound@gmail.com", nil)
 				s.cache.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 		},
@@ -197,7 +198,7 @@ func TestAuthService_VerifyEmail(t *testing.T) {
 					Status:          models.UserStatusActive,
 					EmailVerifiedAt: &verifiedAt,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "verified@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "verified@gmail.com").Return(user, nil)
 			},
 			expectedError: apperr.ErrEmailAlreadyVerified,
 		},
@@ -234,7 +235,7 @@ func TestAuthService_ResendVerificationEmail(t *testing.T) {
 					Email:  "pending@gmail.com",
 					Status: models.UserStatusPending,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "pending@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "pending@gmail.com").Return(user, nil)
 				s.cache.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expectedError: nil,
@@ -243,7 +244,7 @@ func TestAuthService_ResendVerificationEmail(t *testing.T) {
 			name:  "User Not Found",
 			email: "notfound@gmail.com",
 			setupMock: func(s *AuthServiceTestSuite) {
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 		},
@@ -258,7 +259,7 @@ func TestAuthService_ResendVerificationEmail(t *testing.T) {
 					Status:          models.UserStatusActive,
 					EmailVerifiedAt: &verifiedAt,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "verified@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "verified@gmail.com").Return(user, nil)
 			},
 			expectedError: apperr.ErrEmailAlreadyVerified,
 		},
@@ -304,12 +305,12 @@ func TestAuthService_Login(t *testing.T) {
 					Status:          models.UserStatusActive,
 					EmailVerifiedAt: &verifiedAt,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "active@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "active@gmail.com").Return(user, nil)
 				s.passwordHasher.EXPECT().Compare("hashedpassword", "password123").Return(true)
 				s.jwtService.EXPECT().GenerateAccessToken(gomock.Any()).Return("access-token", nil)
 				s.jwtService.EXPECT().GenerateRefreshToken(testUserID.String()).Return("refresh-token", nil)
 				s.jwtService.EXPECT().GetRefreshTTL().Return(7 * 24 * time.Hour)
-				s.refreshTokenRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
+				s.refreshTokenRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, user *models.User, accessToken, refreshToken string, err error) {
@@ -325,7 +326,7 @@ func TestAuthService_Login(t *testing.T) {
 				Password: "password123",
 			},
 			setupMock: func(s *AuthServiceTestSuite) {
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
 			},
 			expectedError: apperr.ErrInvalidCredentials,
 			checkFunc:     nil,
@@ -343,7 +344,7 @@ func TestAuthService_Login(t *testing.T) {
 					HashedPassword: "hashedpassword",
 					Status:         models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "active@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "active@gmail.com").Return(user, nil)
 				s.passwordHasher.EXPECT().Compare("hashedpassword", "wrongpassword").Return(false)
 			},
 			expectedError: apperr.ErrInvalidCredentials,
@@ -362,7 +363,7 @@ func TestAuthService_Login(t *testing.T) {
 					HashedPassword: "hashedpassword",
 					Status:         models.UserStatusPending,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "inactive@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "inactive@gmail.com").Return(user, nil)
 				s.passwordHasher.EXPECT().Compare("hashedpassword", "password123").Return(true)
 			},
 			expectedError: apperr.ErrAccountInactive,
@@ -409,22 +410,22 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				claims.Subject = testUserID.String()
 
 				s.jwtService.EXPECT().VerifyRefreshToken("valid-refresh-token").Return(claims, nil)
-				s.refreshTokenRepo.EXPECT().FindByToken(gomock.Any(), gomock.Any()).Return(&models.RefreshToken{
+				s.refreshTokenRepo.EXPECT().GetByToken(gomock.Any(), gomock.Any()).Return(&models.RefreshToken{
 					ID:        testTokenID,
 					UserID:    testUserID,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 				}, nil)
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(&models.User{
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(&models.User{
 					ID:              testUserID,
 					Email:           "test@gmail.com",
 					Status:          models.UserStatusActive,
 					EmailVerifiedAt: &verifiedAt,
 				}, nil)
-				s.refreshTokenRepo.EXPECT().DeleteByID(gomock.Any(), testTokenID).Return(nil)
+				s.refreshTokenRepo.EXPECT().DeleteByID(gomock.Any(), testTokenID).Return(int64(1), nil)
 				s.jwtService.EXPECT().GenerateAccessToken(gomock.Any()).Return("new-access-token", nil)
 				s.jwtService.EXPECT().GenerateRefreshToken(testUserID.String()).Return("new-refresh-token", nil)
 				s.jwtService.EXPECT().GetRefreshTTL().Return(7 * 24 * time.Hour)
-				s.refreshTokenRepo.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
+				s.refreshTokenRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, accessToken, refreshToken string, err error) {
@@ -458,7 +459,7 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				claims.Subject = testUserID.String()
 
 				s.jwtService.EXPECT().VerifyRefreshToken("valid-but-not-in-db").Return(claims, nil)
-				s.refreshTokenRepo.EXPECT().FindByToken(gomock.Any(), gomock.Any()).Return(nil, nil)
+				s.refreshTokenRepo.EXPECT().GetByToken(gomock.Any(), gomock.Any()).Return(nil, nil)
 			},
 			expectedError: apperr.ErrTokenInvalid,
 			checkFunc:     nil,
@@ -471,12 +472,12 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				claims.Subject = testUserID.String()
 
 				s.jwtService.EXPECT().VerifyRefreshToken("valid-refresh-token").Return(claims, nil)
-				s.refreshTokenRepo.EXPECT().FindByToken(gomock.Any(), gomock.Any()).Return(&models.RefreshToken{
+				s.refreshTokenRepo.EXPECT().GetByToken(gomock.Any(), gomock.Any()).Return(&models.RefreshToken{
 					ID:        testTokenID,
 					UserID:    testUserID,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 				}, nil)
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrTokenInvalid,
 			checkFunc:     nil,
@@ -489,12 +490,12 @@ func TestAuthService_RefreshToken(t *testing.T) {
 				claims.Subject = testUserID.String()
 
 				s.jwtService.EXPECT().VerifyRefreshToken("valid-refresh-token").Return(claims, nil)
-				s.refreshTokenRepo.EXPECT().FindByToken(gomock.Any(), gomock.Any()).Return(&models.RefreshToken{
+				s.refreshTokenRepo.EXPECT().GetByToken(gomock.Any(), gomock.Any()).Return(&models.RefreshToken{
 					ID:        testTokenID,
 					UserID:    testUserID,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 				}, nil)
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(&models.User{
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(&models.User{
 					ID:     testUserID,
 					Email:  "inactive@gmail.com",
 					Status: models.UserStatusPending,
@@ -548,10 +549,10 @@ func TestAuthService_ChangePassword(t *testing.T) {
 					HashedPassword: "hashedoldpassword",
 					Status:         models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
 				s.passwordHasher.EXPECT().Compare("hashedoldpassword", "oldpassword").Return(true)
 				s.passwordHasher.EXPECT().Hash("newpassword").Return("hashednewpassword", nil)
-				s.userRepo.EXPECT().UpdatePassword(gomock.Any(), testUserID, "hashednewpassword").Return(nil)
+				s.userRepo.EXPECT().UpdatePassword(gomock.Any(), testUserID, "hashednewpassword").Return(int64(1), nil)
 			},
 			expectedError: nil,
 		},
@@ -563,7 +564,7 @@ func TestAuthService_ChangePassword(t *testing.T) {
 				NewPassword:     "newpassword",
 			},
 			setupMock: func(s *AuthServiceTestSuite) {
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 		},
@@ -581,7 +582,7 @@ func TestAuthService_ChangePassword(t *testing.T) {
 					HashedPassword: "hashedoldpassword",
 					Status:         models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
 				s.passwordHasher.EXPECT().Compare("hashedoldpassword", "wrongpassword").Return(false)
 			},
 			expectedError: apperr.ErrInvalidCurrentPassword,
@@ -621,7 +622,7 @@ func TestAuthService_ForgotPassword(t *testing.T) {
 					Email:  "test@gmail.com",
 					Status: models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "test@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "test@gmail.com").Return(user, nil)
 				s.cache.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
 			expectedError: nil,
@@ -630,7 +631,7 @@ func TestAuthService_ForgotPassword(t *testing.T) {
 			name:  "User Not Found",
 			email: "notfound@gmail.com",
 			setupMock: func(s *AuthServiceTestSuite) {
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 		},
@@ -673,9 +674,9 @@ func TestAuthService_ResetPassword(t *testing.T) {
 					Email:  "test@gmail.com",
 					Status: models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "test@gmail.com").Return(user, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "test@gmail.com").Return(user, nil)
 				s.passwordHasher.EXPECT().Hash("newpassword123").Return("hashednewpassword", nil)
-				s.userRepo.EXPECT().UpdatePassword(gomock.Any(), testUserID, "hashednewpassword").Return(nil)
+				s.userRepo.EXPECT().UpdatePassword(gomock.Any(), testUserID, "hashednewpassword").Return(int64(1), nil)
 			},
 			expectedError: nil,
 		},
@@ -695,7 +696,7 @@ func TestAuthService_ResetPassword(t *testing.T) {
 			setupMock: func(s *AuthServiceTestSuite) {
 				s.cache.EXPECT().Get(gomock.Any(), gomock.Any()).Return("notfound@gmail.com", nil)
 				s.cache.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
-				s.userRepo.EXPECT().FindByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
+				s.userRepo.EXPECT().GetByEmail(gomock.Any(), "notfound@gmail.com").Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 		},

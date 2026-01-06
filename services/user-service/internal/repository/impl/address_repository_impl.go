@@ -72,7 +72,7 @@ func (r *addressRepository) ListByUserID(ctx context.Context, userID uuid.UUID) 
 	return addresses, nil
 }
 
-func (r *addressRepository) FindByIDAndUserID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*models.Address, error) {
+func (r *addressRepository) GetByIDAndUserID(ctx context.Context, id uuid.UUID, userID uuid.UUID) (*models.Address, error) {
 	params := sqlc.GetAddressByIDAndUserIDParams{
 		ID:     id,
 		UserID: userID,
@@ -88,7 +88,7 @@ func (r *addressRepository) FindByIDAndUserID(ctx context.Context, id uuid.UUID,
 	return mapToAddress(&row), nil
 }
 
-func (r *addressRepository) Update(ctx context.Context, address *models.Address) error {
+func (r *addressRepository) Update(ctx context.Context, address *models.Address) (int64, error) {
 	params := sqlc.UpdateAddressParams{
 		ID:           address.ID,
 		AddressType:  sqlc.AddressTypeEnum(address.AddressType),
@@ -102,23 +102,17 @@ func (r *addressRepository) Update(ctx context.Context, address *models.Address)
 		UpdatedAt:    time.Now(),
 	}
 
-	result, err := r.queries(ctx).UpdateAddress(ctx, params)
-	if err != nil {
-		return err
-	}
-
-	address.UpdatedAt = result.UpdatedAt
-	return nil
+	return r.queries(ctx).UpdateAddress(ctx, params)
 }
 
-func (r *addressRepository) SetDefaultAddress(ctx context.Context, userID, addressID uuid.UUID) error {
+func (r *addressRepository) SetDefaultAddress(ctx context.Context, userID, addressID uuid.UUID) (int64, error) {
 	return r.queries(ctx).SetDefaultAddress(ctx, sqlc.SetDefaultAddressParams{
 		ID:     addressID,
 		UserID: userID,
 	})
 }
 
-func (r *addressRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *addressRepository) Delete(ctx context.Context, id uuid.UUID) (int64, error) {
 	return r.queries(ctx).DeleteAddress(ctx, id)
 
 }

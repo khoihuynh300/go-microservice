@@ -65,7 +65,7 @@ func TestAddressService_CreateUserAddress(t *testing.T) {
 			},
 			setupMock: func(s *AddressServiceTestSuite) {
 				user := &models.User{ID: testUserID, Email: "test@gmail.com", Status: models.UserStatusActive}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
 				s.addressRepo.EXPECT().
 					WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
@@ -97,7 +97,7 @@ func TestAddressService_CreateUserAddress(t *testing.T) {
 			},
 			setupMock: func(s *AddressServiceTestSuite) {
 				user := &models.User{ID: testUserID, Email: "test@gmail.com", Status: models.UserStatusActive}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
 				s.addressRepo.EXPECT().
 					WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
@@ -107,7 +107,7 @@ func TestAddressService_CreateUserAddress(t *testing.T) {
 					addr.ID = testAddressID
 					return nil
 				})
-				s.addressRepo.EXPECT().SetDefaultAddress(gomock.Any(), testUserID, testAddressID).Return(nil)
+				s.addressRepo.EXPECT().SetDefaultAddress(gomock.Any(), testUserID, testAddressID).Return(int64(1), nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, address *models.Address, err error) {
@@ -127,7 +127,7 @@ func TestAddressService_CreateUserAddress(t *testing.T) {
 				Country:      "Vietnam",
 			},
 			setupMock: func(s *AddressServiceTestSuite) {
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 			checkFunc:     nil,
@@ -235,7 +235,7 @@ func TestAddressService_GetUserAddress(t *testing.T) {
 					FullName:    "John Doe",
 					AddressType: models.AddressTypeHome,
 				}
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, address *models.Address, err error) {
@@ -249,7 +249,7 @@ func TestAddressService_GetUserAddress(t *testing.T) {
 			userID:    testUserID.String(),
 			addressID: testAddressID.String(),
 			setupMock: func(s *AddressServiceTestSuite) {
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(nil, nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrAddressNotFound,
 			checkFunc:     nil,
@@ -304,14 +304,14 @@ func TestAddressService_UpdateUserAddress(t *testing.T) {
 					FullName: "Old Name",
 					Phone:    "0123456789",
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
 				s.addressRepo.EXPECT().
 					WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
 					})
-				s.addressRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+				s.addressRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, address *models.Address, err error) {
@@ -335,15 +335,15 @@ func TestAddressService_UpdateUserAddress(t *testing.T) {
 					FullName:  "John Doe",
 					IsDefault: false,
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
 				s.addressRepo.EXPECT().
 					WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
 					})
-				s.addressRepo.EXPECT().SetDefaultAddress(gomock.Any(), testUserID, testAddressID).Return(nil)
-				s.addressRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+				s.addressRepo.EXPECT().SetDefaultAddress(gomock.Any(), testUserID, testAddressID).Return(int64(1), nil)
+				s.addressRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, address *models.Address, err error) {
@@ -359,7 +359,7 @@ func TestAddressService_UpdateUserAddress(t *testing.T) {
 				FullName: ptrString("Updated Name"),
 			},
 			setupMock: func(s *AddressServiceTestSuite) {
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 			checkFunc:     nil,
@@ -373,7 +373,7 @@ func TestAddressService_UpdateUserAddress(t *testing.T) {
 			},
 			setupMock: func(s *AddressServiceTestSuite) {
 				user := &models.User{ID: testUserID, Status: models.UserStatusPending}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
 			},
 			expectedError: apperr.ErrAccountInactive,
 			checkFunc:     nil,
@@ -387,8 +387,8 @@ func TestAddressService_UpdateUserAddress(t *testing.T) {
 			},
 			setupMock: func(s *AddressServiceTestSuite) {
 				user := &models.User{ID: testUserID, Status: models.UserStatusActive}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrAddressNotFound,
 			checkFunc:     nil,
@@ -434,8 +434,8 @@ func TestAddressService_DeleteUserAddress(t *testing.T) {
 					ID:     testAddressID,
 					UserID: testUserID,
 				}
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
-				s.addressRepo.EXPECT().Delete(gomock.Any(), testAddressID).Return(nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(address, nil)
+				s.addressRepo.EXPECT().Delete(gomock.Any(), testAddressID).Return(int64(1), nil)
 			},
 			expectedError: nil,
 		},
@@ -444,7 +444,7 @@ func TestAddressService_DeleteUserAddress(t *testing.T) {
 			userID:    testUserID.String(),
 			addressID: testAddressID.String(),
 			setupMock: func(s *AddressServiceTestSuite) {
-				s.addressRepo.EXPECT().FindByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(nil, nil)
+				s.addressRepo.EXPECT().GetByIDAndUserID(gomock.Any(), testAddressID, testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrAddressNotFound,
 		},

@@ -24,7 +24,7 @@ func createTestUser(t *testing.T, ctx context.Context) *models.User {
 	return user
 }
 
-func TestRefreshTokenRepository_Save(t *testing.T) {
+func TestRefreshTokenRepository_Create(t *testing.T) {
 	ctx := context.Background()
 	repo := impl.NewRefreshTokenRepository(testDB.Pool)
 
@@ -37,7 +37,7 @@ func TestRefreshTokenRepository_Save(t *testing.T) {
 		checkFunc     func(t *testing.T)
 	}{
 		{
-			name: "Save refresh token success",
+			name: "Create refresh token success",
 			setup: func(t *testing.T) {
 				user := createTestUser(t, ctx)
 				tokenToSave = &models.RefreshToken{
@@ -48,7 +48,7 @@ func TestRefreshTokenRepository_Save(t *testing.T) {
 			},
 			expectedError: false,
 			checkFunc: func(t *testing.T) {
-				found, err := repo.FindByToken(ctx, tokenToSave.TokenHash)
+				found, err := repo.GetByToken(ctx, tokenToSave.TokenHash)
 				require.NoError(t, err)
 				assert.NotNil(t, found)
 				assert.Equal(t, tokenToSave.TokenHash, found.TokenHash)
@@ -56,7 +56,7 @@ func TestRefreshTokenRepository_Save(t *testing.T) {
 			},
 		},
 		{
-			name: "Save refresh token with invalid user ID",
+			name: "Create refresh token with invalid user ID",
 			setup: func(t *testing.T) {
 				tokenToSave = &models.RefreshToken{
 					UserID:    uuid.New(),
@@ -77,7 +77,7 @@ func TestRefreshTokenRepository_Save(t *testing.T) {
 				tt.setup(t)
 			}
 
-			err := repo.Save(ctx, tokenToSave)
+			err := repo.Create(ctx, tokenToSave)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -93,7 +93,7 @@ func TestRefreshTokenRepository_Save(t *testing.T) {
 	}
 }
 
-func TestRefreshTokenRepository_FindByToken(t *testing.T) {
+func TestRefreshTokenRepository_GetByToken(t *testing.T) {
 	ctx := context.Background()
 	repo := impl.NewRefreshTokenRepository(testDB.Pool)
 
@@ -106,7 +106,7 @@ func TestRefreshTokenRepository_FindByToken(t *testing.T) {
 		checkFunc     func(t *testing.T, token *models.RefreshToken)
 	}{
 		{
-			name: "Find existing token",
+			name: "Get existing token",
 			setup: func(t *testing.T) {
 				user := createTestUser(t, ctx)
 				tokenHashToFind = "existingtoken123"
@@ -115,7 +115,7 @@ func TestRefreshTokenRepository_FindByToken(t *testing.T) {
 					TokenHash: tokenHashToFind,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 				}
-				require.NoError(t, repo.Save(ctx, token))
+				require.NoError(t, repo.Create(ctx, token))
 			},
 			expectedError: false,
 			checkFunc: func(t *testing.T, token *models.RefreshToken) {
@@ -124,7 +124,7 @@ func TestRefreshTokenRepository_FindByToken(t *testing.T) {
 			},
 		},
 		{
-			name: "Find non-existing token",
+			name: "Get non-existing token",
 			setup: func(t *testing.T) {
 				tokenHashToFind = "nonexistenttoken"
 			},
@@ -134,7 +134,7 @@ func TestRefreshTokenRepository_FindByToken(t *testing.T) {
 			},
 		},
 		{
-			name: "Find with empty token hash",
+			name: "Get with empty token hash",
 			setup: func(t *testing.T) {
 				tokenHashToFind = ""
 			},
@@ -153,7 +153,7 @@ func TestRefreshTokenRepository_FindByToken(t *testing.T) {
 				tt.setup(t)
 			}
 
-			result, err := repo.FindByToken(ctx, tokenHashToFind)
+			result, err := repo.GetByToken(ctx, tokenHashToFind)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -180,6 +180,7 @@ func TestRefreshTokenRepository_DeleteByID(t *testing.T) {
 		name          string
 		setup         func(t *testing.T)
 		expectedError bool
+		rowsAffected  int64
 		checkFunc     func(t *testing.T)
 	}{
 		{
@@ -192,16 +193,17 @@ func TestRefreshTokenRepository_DeleteByID(t *testing.T) {
 					TokenHash: tokenHash,
 					ExpiresAt: time.Now().Add(24 * time.Hour),
 				}
-				require.NoError(t, repo.Save(ctx, token))
+				require.NoError(t, repo.Create(ctx, token))
 
-				savedToken, err := repo.FindByToken(ctx, tokenHash)
+				savedToken, err := repo.GetByToken(ctx, tokenHash)
 				require.NoError(t, err)
 				require.NotNil(t, savedToken)
 				tokenIDToDelete = savedToken.ID
 			},
 			expectedError: false,
+			rowsAffected:  1,
 			checkFunc: func(t *testing.T) {
-				deletedToken, err := repo.FindByToken(ctx, tokenHash)
+				deletedToken, err := repo.GetByToken(ctx, tokenHash)
 				require.NoError(t, err)
 				assert.Nil(t, deletedToken, "Token should be deleted")
 			},
@@ -211,7 +213,8 @@ func TestRefreshTokenRepository_DeleteByID(t *testing.T) {
 			setup: func(t *testing.T) {
 				tokenIDToDelete = uuid.New()
 			},
-			expectedError: true,
+			expectedError: false,
+			rowsAffected:  0,
 			checkFunc:     nil,
 		},
 	}
@@ -224,12 +227,14 @@ func TestRefreshTokenRepository_DeleteByID(t *testing.T) {
 				tt.setup(t)
 			}
 
-			err := repo.DeleteByID(ctx, tokenIDToDelete)
+			rowsAffected, err := repo.DeleteByID(ctx, tokenIDToDelete)
 
 			if tt.expectedError {
 				assert.Error(t, err)
 				return
 			}
+
+			assert.Equal(t, tt.rowsAffected, rowsAffected)
 
 			require.NoError(t, err)
 

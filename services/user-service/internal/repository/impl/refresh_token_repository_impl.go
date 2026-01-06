@@ -27,7 +27,7 @@ func NewRefreshTokenRepository(db *pgxpool.Pool) repository.RefreshTokenReposito
 	}
 }
 
-func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *models.RefreshToken) error {
+func (r *refreshTokenRepository) Create(ctx context.Context, refreshToken *models.RefreshToken) error {
 	params := sqlc.CreateRefreshTokenParams{
 		ID:        uuid.New(),
 		UserID:    refreshToken.UserID,
@@ -39,7 +39,7 @@ func (r *refreshTokenRepository) Save(ctx context.Context, refreshToken *models.
 	return r.queries(ctx).CreateRefreshToken(ctx, params)
 }
 
-func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error) {
+func (r *refreshTokenRepository) GetByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error) {
 	row, err := r.queries(ctx).GetRefreshTokenByTokenHash(ctx, refreshTokenStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
@@ -56,6 +56,6 @@ func (r *refreshTokenRepository) FindByToken(ctx context.Context, refreshTokenSt
 	}, nil
 }
 
-func (r *refreshTokenRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
+func (r *refreshTokenRepository) DeleteByID(ctx context.Context, id uuid.UUID) (int64, error) {
 	return r.queries(ctx).DeleteRefreshTokenByID(ctx, id)
 }

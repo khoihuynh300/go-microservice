@@ -1,6 +1,6 @@
 -- name: GetAddressByIDAndUserID :one
 SELECT * FROM user_addresses
-WHERE id = $1 AND user_id = $2 LIMIT 1;
+WHERE id = $1 AND user_id = $2;
 
 -- name: ListAddressesByUserID :many
 SELECT * FROM user_addresses
@@ -19,7 +19,7 @@ INSERT INTO user_addresses (
 )
 RETURNING *;
 
--- name: UpdateAddress :one
+-- name: UpdateAddress :execrows
 UPDATE user_addresses
 SET
     address_type = $2,
@@ -31,13 +31,12 @@ SET
     city = $8,
     country = $9,
     updated_at = $10
-WHERE id = $1
-RETURNING *;
+WHERE id = $1;
 
--- name: SetDefaultAddress :exec
+-- name: SetDefaultAddress :execrows
 UPDATE user_addresses
 SET is_default = CASE WHEN id = $2 THEN TRUE ELSE FALSE END
 WHERE user_id = $1;
 
--- name: DeleteAddress :exec
+-- name: DeleteAddress :execrows
 DELETE FROM user_addresses WHERE id = $1;

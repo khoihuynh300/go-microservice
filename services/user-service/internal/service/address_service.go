@@ -35,7 +35,7 @@ func (s *AddressService) CreateUserAddress(ctx context.Context, userID string, r
 		return nil, err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, userUUID)
+	user, err := s.userRepo.GetByID(ctx, userUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +62,14 @@ func (s *AddressService) CreateUserAddress(ctx context.Context, userID string, r
 		}
 
 		if req.IsDefault {
-			err = s.addressRepo.SetDefaultAddress(ctx, userUUID, address.ID)
+			rowEffected, err := s.addressRepo.SetDefaultAddress(ctx, userUUID, address.ID)
 			if err != nil {
 				return err
 			}
+			if rowEffected == 0 {
+				return apperr.ErrAddressNotFound
+			}
+
 			address.IsDefault = req.IsDefault
 		}
 
@@ -104,7 +108,7 @@ func (s *AddressService) GetUserAddress(ctx context.Context, userID string, addr
 		return nil, err
 	}
 
-	address, err := s.addressRepo.FindByIDAndUserID(ctx, addressUUID, userUUID)
+	address, err := s.addressRepo.GetByIDAndUserID(ctx, addressUUID, userUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +132,7 @@ func (s *AddressService) UpdateUserAddress(ctx context.Context, userID string, a
 		return nil, err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, userUUID)
+	user, err := s.userRepo.GetByID(ctx, userUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +144,7 @@ func (s *AddressService) UpdateUserAddress(ctx context.Context, userID string, a
 		return nil, apperr.ErrAccountInactive
 	}
 
-	address, err := s.addressRepo.FindByIDAndUserID(ctx, addressUUID, userUUID)
+	address, err := s.addressRepo.GetByIDAndUserID(ctx, addressUUID, userUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -172,17 +176,23 @@ func (s *AddressService) UpdateUserAddress(ctx context.Context, userID string, a
 
 	err = s.addressRepo.WithinTransaction(ctx, func(ctx context.Context) error {
 		if req.IsDefault != nil && *req.IsDefault {
-			err = s.addressRepo.SetDefaultAddress(ctx, userUUID, address.ID)
+			rowEffected, err := s.addressRepo.SetDefaultAddress(ctx, userUUID, address.ID)
 			if err != nil {
 				return err
 			}
-			address.IsDefault = *req.IsDefault
+			if rowEffected == 0 {
+				return apperr.ErrAddressNotFound
+			}
 
+			address.IsDefault = *req.IsDefault
 		}
 
-		err = s.addressRepo.Update(ctx, address)
+		rowEffected, err := s.addressRepo.Update(ctx, address)
 		if err != nil {
 			return err
+		}
+		if rowEffected == 0 {
+			return apperr.ErrAddressNotFound
 		}
 
 		return nil
@@ -205,7 +215,7 @@ func (s *AddressService) DeleteUserAddress(ctx context.Context, userID string, a
 		return err
 	}
 
-	address, err := s.addressRepo.FindByIDAndUserID(ctx, addressUUID, userUUID)
+	address, err := s.addressRepo.GetByIDAndUserID(ctx, addressUUID, userUUID)
 	if err != nil {
 		return err
 	}
@@ -213,9 +223,12 @@ func (s *AddressService) DeleteUserAddress(ctx context.Context, userID string, a
 		return apperr.ErrAddressNotFound
 	}
 
-	err = s.addressRepo.Delete(ctx, addressUUID)
+	rowEffected, err := s.addressRepo.Delete(ctx, addressUUID)
 	if err != nil {
 		return err
+	}
+	if rowEffected == 0 {
+		return apperr.ErrAddressNotFound
 	}
 
 	logger.Info("Deleted address", zap.String("addressID", addressID), zap.String("userID", userID))

@@ -51,11 +51,12 @@ func (mr *MockAddressRepositoryMockRecorder) Create(arg0, arg1 interface{}) *gom
 }
 
 // Delete mocks base method.
-func (m *MockAddressRepository) Delete(arg0 context.Context, arg1 uuid.UUID) error {
+func (m *MockAddressRepository) Delete(arg0 context.Context, arg1 uuid.UUID) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Delete indicates an expected call of Delete.
@@ -64,19 +65,19 @@ func (mr *MockAddressRepositoryMockRecorder) Delete(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAddressRepository)(nil).Delete), arg0, arg1)
 }
 
-// FindByIDAndUserID mocks base method.
-func (m *MockAddressRepository) FindByIDAndUserID(arg0 context.Context, arg1, arg2 uuid.UUID) (*models.Address, error) {
+// GetByIDAndUserID mocks base method.
+func (m *MockAddressRepository) GetByIDAndUserID(arg0 context.Context, arg1, arg2 uuid.UUID) (*models.Address, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByIDAndUserID", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetByIDAndUserID", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*models.Address)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindByIDAndUserID indicates an expected call of FindByIDAndUserID.
-func (mr *MockAddressRepositoryMockRecorder) FindByIDAndUserID(arg0, arg1, arg2 interface{}) *gomock.Call {
+// GetByIDAndUserID indicates an expected call of GetByIDAndUserID.
+func (mr *MockAddressRepositoryMockRecorder) GetByIDAndUserID(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByIDAndUserID", reflect.TypeOf((*MockAddressRepository)(nil).FindByIDAndUserID), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByIDAndUserID", reflect.TypeOf((*MockAddressRepository)(nil).GetByIDAndUserID), arg0, arg1, arg2)
 }
 
 // ListByUserID mocks base method.
@@ -95,11 +96,12 @@ func (mr *MockAddressRepositoryMockRecorder) ListByUserID(arg0, arg1 interface{}
 }
 
 // SetDefaultAddress mocks base method.
-func (m *MockAddressRepository) SetDefaultAddress(arg0 context.Context, arg1, arg2 uuid.UUID) error {
+func (m *MockAddressRepository) SetDefaultAddress(arg0 context.Context, arg1, arg2 uuid.UUID) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetDefaultAddress", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // SetDefaultAddress indicates an expected call of SetDefaultAddress.
@@ -109,11 +111,12 @@ func (mr *MockAddressRepositoryMockRecorder) SetDefaultAddress(arg0, arg1, arg2 
 }
 
 // Update mocks base method.
-func (m *MockAddressRepository) Update(arg0 context.Context, arg1 *models.Address) error {
+func (m *MockAddressRepository) Update(arg0 context.Context, arg1 *models.Address) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.

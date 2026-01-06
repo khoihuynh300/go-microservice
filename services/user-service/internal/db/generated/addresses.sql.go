@@ -75,18 +75,21 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (U
 	return i, err
 }
 
-const deleteAddress = `-- name: DeleteAddress :exec
+const deleteAddress = `-- name: DeleteAddress :execrows
 DELETE FROM user_addresses WHERE id = $1
 `
 
-func (q *Queries) DeleteAddress(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteAddress, id)
-	return err
+func (q *Queries) DeleteAddress(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAddress, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getAddressByIDAndUserID = `-- name: GetAddressByIDAndUserID :one
 SELECT id, user_id, address_type, full_name, phone, address_line1, address_line2, ward, city, country, is_default, created_at, updated_at FROM user_addresses
-WHERE id = $1 AND user_id = $2 LIMIT 1
+WHERE id = $1 AND user_id = $2
 `
 
 type GetAddressByIDAndUserIDParams struct {
@@ -155,7 +158,7 @@ func (q *Queries) ListAddressesByUserID(ctx context.Context, userID uuid.UUID) (
 	return items, nil
 }
 
-const setDefaultAddress = `-- name: SetDefaultAddress :exec
+const setDefaultAddress = `-- name: SetDefaultAddress :execrows
 UPDATE user_addresses
 SET is_default = CASE WHEN id = $2 THEN TRUE ELSE FALSE END
 WHERE user_id = $1
@@ -166,12 +169,15 @@ type SetDefaultAddressParams struct {
 	ID     uuid.UUID
 }
 
-func (q *Queries) SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error {
-	_, err := q.db.Exec(ctx, setDefaultAddress, arg.UserID, arg.ID)
-	return err
+func (q *Queries) SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setDefaultAddress, arg.UserID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const updateAddress = `-- name: UpdateAddress :one
+const updateAddress = `-- name: UpdateAddress :execrows
 UPDATE user_addresses
 SET
     address_type = $2,
@@ -184,7 +190,6 @@ SET
     country = $9,
     updated_at = $10
 WHERE id = $1
-RETURNING id, user_id, address_type, full_name, phone, address_line1, address_line2, ward, city, country, is_default, created_at, updated_at
 `
 
 type UpdateAddressParams struct {
@@ -200,8 +205,8 @@ type UpdateAddressParams struct {
 	UpdatedAt    time.Time
 }
 
-func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (UserAddress, error) {
-	row := q.db.QueryRow(ctx, updateAddress,
+func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateAddress,
 		arg.ID,
 		arg.AddressType,
 		arg.FullName,
@@ -213,21 +218,8 @@ func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (U
 		arg.Country,
 		arg.UpdatedAt,
 	)
-	var i UserAddress
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.AddressType,
-		&i.FullName,
-		&i.Phone,
-		&i.AddressLine1,
-		&i.AddressLine2,
-		&i.Ward,
-		&i.City,
-		&i.Country,
-		&i.IsDefault,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

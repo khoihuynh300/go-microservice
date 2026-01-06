@@ -45,7 +45,7 @@ func NewAuthService(
 func (s *AuthService) Register(ctx context.Context, req *request.RegisterRequest) (*models.User, error) {
 	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
 
-	existedUser, err := s.userRepo.FindByEmail(ctx, req.Email)
+	existedUser, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 		return err
 	}
 
-	user, err := s.userRepo.FindByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -117,11 +117,20 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 		return apperr.ErrEmailAlreadyVerified
 	}
 
-	user.Status = models.UserStatusActive
-	now := time.Now()
-	user.EmailVerifiedAt = &now
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	rowEffected, err := s.userRepo.VerifyEmail(ctx, user.ID)
+	if err != nil {
 		return err
+	}
+	if rowEffected == 0 {
+		return apperr.ErrUserNotFound
+	}
+
+	rowEffected, err = s.userRepo.UpdateStatus(ctx, user.ID, models.UserStatusActive)
+	if err != nil {
+		return err
+	}
+	if rowEffected == 0 {
+		return apperr.ErrUserNotFound
 	}
 
 	logger.Info("Email verification success",
@@ -134,7 +143,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string) error {
 	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
 
-	user, err := s.userRepo.FindByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -166,7 +175,7 @@ func (s *AuthService) ResendVerificationEmail(ctx context.Context, email string)
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error) {
 	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
 
-	user, err := s.userRepo.FindByEmail(ctx, req.Email)
+	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -208,7 +217,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		return "", "", err
 	}
 
-	refreshTokenModel, err := s.refreshTokenRepo.FindByToken(ctx, utils.HashToken(refreshTokenStr))
+	refreshTokenModel, err := s.refreshTokenRepo.GetByToken(ctx, utils.HashToken(refreshTokenStr))
 	if err != nil {
 		return "", "", err
 	}
@@ -218,7 +227,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 
 	userID := uuid.MustParse(claims.Subject)
 
-	user, err := s.userRepo.FindByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return "", "", err
 	}
@@ -230,8 +239,12 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshTokenStr string) 
 		return "", "", apperr.ErrAccountInactive
 	}
 
-	if err := s.refreshTokenRepo.DeleteByID(ctx, refreshTokenModel.ID); err != nil {
+	rowEffected, err := s.refreshTokenRepo.DeleteByID(ctx, refreshTokenModel.ID)
+	if err != nil {
 		return "", "", err
+	}
+	if rowEffected == 0 {
+		return "", "", apperr.ErrTokenInvalid
 	}
 
 	return s.generateTokenPair(ctx, user)
@@ -254,7 +267,7 @@ func (s *AuthService) generateTokenPair(ctx context.Context, user *models.User) 
 		ExpiresAt: time.Now().Add(s.jwtService.GetRefreshTTL()),
 	}
 
-	err = s.refreshTokenRepo.Save(ctx, refreshTokenModel)
+	err = s.refreshTokenRepo.Create(ctx, refreshTokenModel)
 	if err != nil {
 		return "", "", err
 	}
@@ -270,7 +283,7 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID string, req *re
 		return err
 	}
 
-	user, err := s.userRepo.FindByID(ctx, userUUID)
+	user, err := s.userRepo.GetByID(ctx, userUUID)
 	if err != nil {
 		return err
 	}
@@ -290,9 +303,12 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID string, req *re
 		return err
 	}
 
-	err = s.userRepo.UpdatePassword(ctx, user.ID, newHashedPassword)
+	rowEffected, err := s.userRepo.UpdatePassword(ctx, user.ID, newHashedPassword)
 	if err != nil {
 		return err
+	}
+	if rowEffected == 0 {
+		return apperr.ErrUserNotFound
 	}
 
 	logger.Info("Change password success",
@@ -303,7 +319,7 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID string, req *re
 
 func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
-	user, err := s.userRepo.FindByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -334,7 +350,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, token string, newPasswo
 		return err
 	}
 
-	user, err := s.userRepo.FindByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -347,9 +363,12 @@ func (s *AuthService) ResetPassword(ctx context.Context, token string, newPasswo
 		return err
 	}
 
-	err = s.userRepo.UpdatePassword(ctx, user.ID, newHashedPassword)
+	rowEffected, err := s.userRepo.UpdatePassword(ctx, user.ID, newHashedPassword)
 	if err != nil {
 		return err
+	}
+	if rowEffected == 0 {
+		return apperr.ErrUserNotFound
 	}
 
 	logger.Info("Reset password success",

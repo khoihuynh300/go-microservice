@@ -55,7 +55,7 @@ func TestUserService_GetUserByID(t *testing.T) {
 					FullName: "Test User",
 					Status:   models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, user *models.User, err error) {
@@ -68,7 +68,7 @@ func TestUserService_GetUserByID(t *testing.T) {
 			name:   "User Not Found",
 			userID: testUserID.String(),
 			setupMock: func(s *UserServiceTestSuite) {
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 			checkFunc:     nil,
@@ -120,8 +120,8 @@ func TestUserService_UpdateUser(t *testing.T) {
 					FullName: "Old Name",
 					Status:   models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
-				s.userRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, user *models.User, err error) {
@@ -144,8 +144,8 @@ func TestUserService_UpdateUser(t *testing.T) {
 					FullName: "Old Name",
 					Status:   models.UserStatusActive,
 				}
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(user, nil)
-				s.userRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(user, nil)
+				s.userRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(int64(1), nil)
 			},
 			expectedError: nil,
 			checkFunc: func(t *testing.T, user *models.User, err error) {
@@ -160,7 +160,7 @@ func TestUserService_UpdateUser(t *testing.T) {
 				FullName: ptrString("New Name"),
 			},
 			setupMock: func(s *UserServiceTestSuite) {
-				s.userRepo.EXPECT().FindByID(gomock.Any(), testUserID).Return(nil, nil)
+				s.userRepo.EXPECT().GetByID(gomock.Any(), testUserID).Return(nil, nil)
 			},
 			expectedError: apperr.ErrUserNotFound,
 			checkFunc:     nil,

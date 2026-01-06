@@ -1,6 +1,6 @@
 include .env
 
-.PHONY: run test test-unit create-migration migrate-up migrate-down sqlc
+.PHONY: run test test-unit test-integration test-coverage generate-mocks create-migration migrate-up migrate-down sqlc
 
 generate-mocks:
 	mockgen -package=mock_repository github.com/khoihuynh300/go-microservice/user-service/internal/repository UserRepository > mocks/repository/user_repository_mock.go

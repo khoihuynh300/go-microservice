@@ -185,7 +185,7 @@ func TestAddressRepository_ListByUserID(t *testing.T) {
 	}
 }
 
-func TestAddressRepository_FindByIDAndUserID(t *testing.T) {
+func TestAddressRepository_GetByIDAndUserID(t *testing.T) {
 	ctx := context.Background()
 	repo := impl.NewAddressRepository(testDB.Pool)
 
@@ -199,7 +199,7 @@ func TestAddressRepository_FindByIDAndUserID(t *testing.T) {
 		checkFunc     func(t *testing.T, address *models.Address)
 	}{
 		{
-			name: "Find existing address by ID and user ID",
+			name: "Get existing address by ID and user ID",
 			setup: func(t *testing.T) {
 				user := createTestUserForAddress(t, ctx)
 				userID = user.ID
@@ -216,7 +216,7 @@ func TestAddressRepository_FindByIDAndUserID(t *testing.T) {
 			},
 		},
 		{
-			name: "Find address with wrong user ID",
+			name: "Get address with wrong user ID",
 			setup: func(t *testing.T) {
 				user := createTestUserForAddress(t, ctx)
 
@@ -231,7 +231,7 @@ func TestAddressRepository_FindByIDAndUserID(t *testing.T) {
 			},
 		},
 		{
-			name: "Find non-existing address",
+			name: "Get non-existing address",
 			setup: func(t *testing.T) {
 				addressID = uuid.New()
 				userID = uuid.New()
@@ -251,7 +251,7 @@ func TestAddressRepository_FindByIDAndUserID(t *testing.T) {
 				tt.setup(t)
 			}
 
-			result, err := repo.FindByIDAndUserID(ctx, addressID, userID)
+			result, err := repo.GetByIDAndUserID(ctx, addressID, userID)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -278,6 +278,7 @@ func TestAddressRepository_Update(t *testing.T) {
 		setup         func(t *testing.T)
 		updateFunc    func(a *models.Address)
 		expectedError bool
+		rowsAffected  int64
 		checkFunc     func(t *testing.T, address *models.Address)
 	}{
 		{
@@ -291,7 +292,9 @@ func TestAddressRepository_Update(t *testing.T) {
 				a.AddressLine1 = "456 Updated Street"
 			},
 			expectedError: false,
+			rowsAffected:  1,
 			checkFunc: func(t *testing.T, address *models.Address) {
+				require.NotNil(t, address)
 				assert.Equal(t, "456 Updated Street", address.AddressLine1)
 			},
 		},
@@ -307,7 +310,9 @@ func TestAddressRepository_Update(t *testing.T) {
 				a.FullName = "Updated Name"
 			},
 			expectedError: false,
+			rowsAffected:  1,
 			checkFunc: func(t *testing.T, address *models.Address) {
+				require.NotNil(t, address)
 				assert.Equal(t, "0987654321", address.Phone)
 				assert.Equal(t, "Updated Name", address.FullName)
 			},
@@ -323,7 +328,9 @@ func TestAddressRepository_Update(t *testing.T) {
 				a.AddressType = models.AddressTypeWork
 			},
 			expectedError: false,
+			rowsAffected:  1,
 			checkFunc: func(t *testing.T, address *models.Address) {
+				require.NotNil(t, address)
 				assert.Equal(t, models.AddressTypeWork, address.AddressType)
 			},
 		},
@@ -337,8 +344,11 @@ func TestAddressRepository_Update(t *testing.T) {
 			updateFunc: func(a *models.Address) {
 				a.FullName = "Should Not Update"
 			},
-			expectedError: true,
-			checkFunc:     nil,
+			expectedError: false,
+			rowsAffected:  0,
+			checkFunc: func(t *testing.T, address *models.Address) {
+				assert.Nil(t, address)
+			},
 		},
 	}
 
@@ -354,19 +364,19 @@ func TestAddressRepository_Update(t *testing.T) {
 				tt.updateFunc(addressToUpdate)
 			}
 
-			err := repo.Update(ctx, addressToUpdate)
+			rowsAffected, err := repo.Update(ctx, addressToUpdate)
 
 			if tt.expectedError {
 				assert.Error(t, err)
 				return
 			}
 
+			assert.Equal(t, tt.rowsAffected, rowsAffected)
+
 			require.NoError(t, err)
 
-			// Verify by fetching from database
-			updatedAddr, err := repo.FindByIDAndUserID(ctx, addressToUpdate.ID, addressToUpdate.UserID)
+			updatedAddr, err := repo.GetByIDAndUserID(ctx, addressToUpdate.ID, addressToUpdate.UserID)
 			require.NoError(t, err)
-			require.NotNil(t, updatedAddr)
 
 			if tt.checkFunc != nil {
 				tt.checkFunc(t, updatedAddr)
@@ -386,6 +396,7 @@ func TestAddressRepository_Delete(t *testing.T) {
 		name          string
 		setup         func(t *testing.T)
 		expectedError bool
+		rowsAffected  int64
 		checkFunc     func(t *testing.T)
 	}{
 		{
@@ -399,8 +410,9 @@ func TestAddressRepository_Delete(t *testing.T) {
 				addressIDToDelete = addr.ID
 			},
 			expectedError: false,
+			rowsAffected:  1,
 			checkFunc: func(t *testing.T) {
-				deletedAddr, err := repo.FindByIDAndUserID(ctx, addressIDToDelete, userID)
+				deletedAddr, err := repo.GetByIDAndUserID(ctx, addressIDToDelete, userID)
 				require.NoError(t, err)
 				assert.Nil(t, deletedAddr, "Address should be deleted")
 			},
@@ -410,7 +422,8 @@ func TestAddressRepository_Delete(t *testing.T) {
 			setup: func(t *testing.T) {
 				addressIDToDelete = uuid.New()
 			},
-			expectedError: true,
+			expectedError: false,
+			rowsAffected:  0,
 			checkFunc:     nil,
 		},
 	}
@@ -423,12 +436,14 @@ func TestAddressRepository_Delete(t *testing.T) {
 				tt.setup(t)
 			}
 
-			err := repo.Delete(ctx, addressIDToDelete)
+			rowsAffected, err := repo.Delete(ctx, addressIDToDelete)
 
 			if tt.expectedError {
 				assert.Error(t, err)
 				return
 			}
+
+			assert.Equal(t, tt.rowsAffected, rowsAffected)
 
 			require.NoError(t, err)
 
@@ -450,6 +465,7 @@ func TestAddressRepository_SetDefaultAddress(t *testing.T) {
 		name          string
 		setup         func(t *testing.T)
 		expectedError bool
+		rowsAffected  int64
 		checkFunc     func(t *testing.T)
 	}{
 		{
@@ -468,8 +484,9 @@ func TestAddressRepository_SetDefaultAddress(t *testing.T) {
 				addressIDToSetDefault = addr2.ID
 			},
 			expectedError: false,
+			rowsAffected:  2,
 			checkFunc: func(t *testing.T) {
-				addr, err := repo.FindByIDAndUserID(ctx, addressIDToSetDefault, userID)
+				addr, err := repo.GetByIDAndUserID(ctx, addressIDToSetDefault, userID)
 				require.NoError(t, err)
 				require.NotNil(t, addr)
 				assert.True(t, addr.IsDefault, "Address should be set as default")
@@ -482,7 +499,8 @@ func TestAddressRepository_SetDefaultAddress(t *testing.T) {
 				userID = user.ID
 				addressIDToSetDefault = uuid.New()
 			},
-			expectedError: true,
+			expectedError: false,
+			rowsAffected:  0,
 			checkFunc:     nil,
 		},
 	}
@@ -495,12 +513,14 @@ func TestAddressRepository_SetDefaultAddress(t *testing.T) {
 				tt.setup(t)
 			}
 
-			err := repo.SetDefaultAddress(ctx, userID, addressIDToSetDefault)
+			rowsAffected, err := repo.SetDefaultAddress(ctx, userID, addressIDToSetDefault)
 
 			if tt.expectedError {
 				assert.Error(t, err)
 				return
 			}
+
+			assert.Equal(t, tt.rowsAffected, rowsAffected)
 
 			require.NoError(t, err)
 

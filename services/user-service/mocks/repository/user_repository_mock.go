@@ -36,21 +36,6 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 	return m.recorder
 }
 
-// Count mocks base method.
-func (m *MockUserRepository) Count(arg0 context.Context, arg1 models.UserStatus) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Count", arg0, arg1)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Count indicates an expected call of Count.
-func (mr *MockUserRepositoryMockRecorder) Count(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Count", reflect.TypeOf((*MockUserRepository)(nil).Count), arg0, arg1)
-}
-
 // Create mocks base method.
 func (m *MockUserRepository) Create(arg0 context.Context, arg1 *models.User) error {
 	m.ctrl.T.Helper()
@@ -65,57 +50,43 @@ func (mr *MockUserRepositoryMockRecorder) Create(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepository)(nil).Create), arg0, arg1)
 }
 
-// FindByEmail mocks base method.
-func (m *MockUserRepository) FindByEmail(arg0 context.Context, arg1 string) (*models.User, error) {
+// GetByEmail mocks base method.
+func (m *MockUserRepository) GetByEmail(arg0 context.Context, arg1 string) (*models.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByEmail", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetByEmail", arg0, arg1)
 	ret0, _ := ret[0].(*models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindByEmail indicates an expected call of FindByEmail.
-func (mr *MockUserRepositoryMockRecorder) FindByEmail(arg0, arg1 interface{}) *gomock.Call {
+// GetByEmail indicates an expected call of GetByEmail.
+func (mr *MockUserRepositoryMockRecorder) GetByEmail(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByEmail", reflect.TypeOf((*MockUserRepository)(nil).FindByEmail), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByEmail", reflect.TypeOf((*MockUserRepository)(nil).GetByEmail), arg0, arg1)
 }
 
-// FindByID mocks base method.
-func (m *MockUserRepository) FindByID(arg0 context.Context, arg1 uuid.UUID) (*models.User, error) {
+// GetByID mocks base method.
+func (m *MockUserRepository) GetByID(arg0 context.Context, arg1 uuid.UUID) (*models.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByID", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetByID", arg0, arg1)
 	ret0, _ := ret[0].(*models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindByID indicates an expected call of FindByID.
-func (mr *MockUserRepositoryMockRecorder) FindByID(arg0, arg1 interface{}) *gomock.Call {
+// GetByID indicates an expected call of GetByID.
+func (mr *MockUserRepositoryMockRecorder) GetByID(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockUserRepository)(nil).FindByID), arg0, arg1)
-}
-
-// List mocks base method.
-func (m *MockUserRepository) List(arg0 context.Context, arg1 models.UserStatus, arg2, arg3 int) ([]*models.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]*models.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// List indicates an expected call of List.
-func (mr *MockUserRepositoryMockRecorder) List(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockUserRepository)(nil).List), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockUserRepository)(nil).GetByID), arg0, arg1)
 }
 
 // SoftDelete mocks base method.
-func (m *MockUserRepository) SoftDelete(arg0 context.Context, arg1 uuid.UUID) error {
+func (m *MockUserRepository) SoftDelete(arg0 context.Context, arg1 uuid.UUID) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SoftDelete", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // SoftDelete indicates an expected call of SoftDelete.
@@ -125,11 +96,12 @@ func (mr *MockUserRepositoryMockRecorder) SoftDelete(arg0, arg1 interface{}) *go
 }
 
 // Update mocks base method.
-func (m *MockUserRepository) Update(arg0 context.Context, arg1 *models.User) error {
+func (m *MockUserRepository) Update(arg0 context.Context, arg1 *models.User) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.
@@ -138,12 +110,28 @@ func (mr *MockUserRepositoryMockRecorder) Update(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUserRepository)(nil).Update), arg0, arg1)
 }
 
+// UpdateAvatar mocks base method.
+func (m *MockUserRepository) UpdateAvatar(arg0 context.Context, arg1 uuid.UUID, arg2 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAvatar", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAvatar indicates an expected call of UpdateAvatar.
+func (mr *MockUserRepositoryMockRecorder) UpdateAvatar(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAvatar", reflect.TypeOf((*MockUserRepository)(nil).UpdateAvatar), arg0, arg1, arg2)
+}
+
 // UpdatePassword mocks base method.
-func (m *MockUserRepository) UpdatePassword(arg0 context.Context, arg1 uuid.UUID, arg2 string) error {
+func (m *MockUserRepository) UpdatePassword(arg0 context.Context, arg1 uuid.UUID, arg2 string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdatePassword", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdatePassword indicates an expected call of UpdatePassword.
@@ -153,17 +141,33 @@ func (mr *MockUserRepositoryMockRecorder) UpdatePassword(arg0, arg1, arg2 interf
 }
 
 // UpdateStatus mocks base method.
-func (m *MockUserRepository) UpdateStatus(arg0 context.Context, arg1 uuid.UUID, arg2 models.UserStatus) error {
+func (m *MockUserRepository) UpdateStatus(arg0 context.Context, arg1 uuid.UUID, arg2 models.UserStatus) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStatus", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateStatus indicates an expected call of UpdateStatus.
 func (mr *MockUserRepositoryMockRecorder) UpdateStatus(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockUserRepository)(nil).UpdateStatus), arg0, arg1, arg2)
+}
+
+// VerifyEmail mocks base method.
+func (m *MockUserRepository) VerifyEmail(arg0 context.Context, arg1 uuid.UUID) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyEmail", arg0, arg1)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// VerifyEmail indicates an expected call of VerifyEmail.
+func (mr *MockUserRepositoryMockRecorder) VerifyEmail(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyEmail", reflect.TypeOf((*MockUserRepository)(nil).VerifyEmail), arg0, arg1)
 }
 
 // WithinTransaction mocks base method.
