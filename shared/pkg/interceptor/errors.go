@@ -3,13 +3,14 @@ package interceptor
 import (
 	"context"
 
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
 
-func ErrorHandlerInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
+func ErrorHandlerInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -17,6 +18,8 @@ func ErrorHandlerInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		resp, err := handler(ctx, req)
+
+		logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
 
 		if err != nil {
 			if appErr, oke := err.(*apperr.AppError); oke {
@@ -27,7 +30,7 @@ func ErrorHandlerInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 						zap.String("code", appErr.Code),
 						zap.String("message", appErr.Message),
 						zap.Any("details", appErr.Details),
-						zap.Error(appErr.OriginalError),
+						zap.Error(appErr.Err),
 					)
 
 				case codes.NotFound, codes.AlreadyExists, codes.InvalidArgument:

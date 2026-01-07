@@ -28,7 +28,7 @@ var (
 	ErrTokenInvalid = errors.New("token invalid")
 )
 
-func NewJwtService(accessSecret string, accessTTL time.Duration, refreshSecret string, refreshTTL time.Duration) *JwtService {
+func NewJwtService(accessSecret string, accessTTL time.Duration, refreshSecret string, refreshTTL time.Duration) JwtProvider {
 	return &JwtService{
 		access_secret:  []byte(accessSecret),
 		access_ttl:     accessTTL,

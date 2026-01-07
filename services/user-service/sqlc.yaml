@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "db/queries/*.sql"
+    queries: "internal/db/queries/*.sql"
     schema: "migrations/*.up.sql"
     gen:
       go:
         package: "sqlc"
-        out: "db/generated"
+        out: "internal/db/generated"
         sql_package: "pgx/v5"
         overrides:
           - db_type: "uuid"

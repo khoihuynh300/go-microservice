@@ -10,9 +10,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sqlc "github.com/khoihuynh300/go-microservice/user-service/db/generated"
+	sqlc "github.com/khoihuynh300/go-microservice/user-service/internal/db/generated"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/utils/convert"
 )
 
 type userRepository struct {
@@ -29,15 +30,16 @@ func NewUserRepository(db *pgxpool.Pool) repository.UserRepository {
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) error {
+	now := time.Now()
+
 	params := sqlc.CreateUserParams{
 		ID:             uuid.New(),
 		Email:          user.Email,
 		HashedPassword: user.HashedPassword,
 		FullName:       user.FullName,
-		Phone:          pgtype.Text{String: user.Phone, Valid: user.Phone != ""},
-		Status:         string(user.Status),
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		Status:         sqlc.UserStatusEnum(user.Status),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	result, err := r.queries(ctx).CreateUser(ctx, params)
@@ -46,13 +48,11 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 	}
 
 	user.ID = result.ID
-	user.CreatedAt = result.CreatedAt
-	user.UpdatedAt = result.UpdatedAt
 
 	return nil
 }
 
-func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	row, err := r.queries(ctx).GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
@@ -65,7 +65,7 @@ func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Us
 	return r.mapToUser(row), nil
 }
 
-func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	row, err := r.queries(ctx).GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
@@ -77,59 +77,41 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 	return r.mapToUser(row), nil
 }
 
-func (r *userRepository) List(ctx context.Context, status models.UserStatus, limit, offset int) ([]*models.User, error) {
-	params := sqlc.ListUsersParams{
-		Status: string(status),
-		Limit:  int32(limit),
-		Offset: int32(offset),
-	}
-
-	rows, err := r.queries(ctx).ListUsers(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-
-	users := make([]*models.User, 0, len(rows))
-	for i, row := range rows {
-		users[i] = r.mapToUser(row)
-	}
-	return users, nil
-}
-
-func (r *userRepository) Count(ctx context.Context, status models.UserStatus) (int64, error) {
-	count, err := r.queries(ctx).CountUsers(ctx, string(status))
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
-}
-
-func (r *userRepository) Update(ctx context.Context, user *models.User) error {
+func (r *userRepository) Update(ctx context.Context, user *models.User) (int64, error) {
 	params := sqlc.UpdateUserParams{
-		ID:        user.ID,
-		FullName:  user.FullName,
-		Phone:     pgtype.Text{String: user.Phone, Valid: user.Phone != ""},
-		AvatarUrl: pgtype.Text{String: user.AvatarURL, Valid: user.AvatarURL != ""},
-		// DateOfBirth: pgtype.Date{Time: *user.DateOfBirth, Valid: user.DateOfBirth != nil},
-		Gender:    pgtype.Text{String: string(user.Gender), Valid: user.Gender != ""},
-		UpdatedAt: time.Now(),
-		Status:    string(user.Status),
-		EmailVerifiedAt: pgtype.Timestamptz{
-			Time:  *user.EmailVerifiedAt,
-			Valid: user.EmailVerifiedAt != nil,
-		},
+		ID:          user.ID,
+		FullName:    user.FullName,
+		Phone:       convert.PtrToText(user.Phone),
+		DateOfBirth: convert.PtrToDate(user.DateOfBirth),
+		Gender:      convert.PtrToGenderEnum(user.Gender),
+		UpdatedAt:   time.Now(),
 	}
 
-	result, err := r.queries(ctx).UpdateUser(ctx, params)
-	if err != nil {
-		return err
-	}
-	user.UpdatedAt = result.UpdatedAt
-	return nil
+	return r.queries(ctx).UpdateUser(ctx, params)
 }
 
-func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, hashedPassword string) error {
+func (r *userRepository) UpdateAvatar(ctx context.Context, id uuid.UUID, avatarURL string) (int64, error) {
+	params := sqlc.UpdateUserAvatarParams{
+		ID:        id,
+		AvatarUrl: pgtype.Text{String: avatarURL, Valid: true},
+		UpdatedAt: time.Now(),
+	}
+
+	return r.queries(ctx).UpdateUserAvatar(ctx, params)
+}
+
+func (r *userRepository) VerifyEmail(ctx context.Context, id uuid.UUID) (int64, error) {
+	now := time.Now()
+	params := sqlc.VerifyUserEmailParams{
+		ID:              id,
+		EmailVerifiedAt: pgtype.Timestamptz{Time: now, Valid: true},
+		UpdatedAt:       now,
+	}
+
+	return r.queries(ctx).VerifyUserEmail(ctx, params)
+}
+
+func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, hashedPassword string) (int64, error) {
 	params := sqlc.UpdateUserPasswordParams{
 		ID:             id,
 		HashedPassword: hashedPassword,
@@ -139,43 +121,42 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id uuid.UUID, hashe
 	return r.queries(ctx).UpdateUserPassword(ctx, params)
 }
 
-func (r *userRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status models.UserStatus) error {
+func (r *userRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status models.UserStatus) (int64, error) {
 	params := sqlc.UpdateUserStatusParams{
 		ID:        id,
-		Status:    string(status),
+		Status:    sqlc.UserStatusEnum(status),
 		UpdatedAt: time.Now(),
 	}
+
 	return r.queries(ctx).UpdateUserStatus(ctx, params)
 }
 
-func (r *userRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
+func (r *userRepository) SoftDelete(ctx context.Context, id uuid.UUID) (int64, error) {
+	now := time.Now()
+
 	params := sqlc.SoftDeleteUserParams{
 		ID:        id,
-		DeletedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		DeletedAt: pgtype.Timestamptz{Time: now, Valid: true},
+		UpdatedAt: now,
 	}
+
 	return r.queries(ctx).SoftDeleteUser(ctx, params)
 }
 
 func (r *userRepository) mapToUser(row sqlc.User) *models.User {
 	user := &models.User{
-		ID:             row.ID,
-		Email:          row.Email,
-		HashedPassword: row.HashedPassword,
-		FullName:       row.FullName,
-		Phone:          row.Phone.String,
-		AvatarURL:      row.AvatarUrl.String,
-		Gender:         row.Gender.String,
-		Status:         models.UserStatus(row.Status),
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-	}
-
-	if row.DateOfBirth.Valid {
-		user.DateOfBirth = &row.DateOfBirth.Time
-	}
-
-	if row.EmailVerifiedAt.Valid {
-		user.EmailVerifiedAt = &row.EmailVerifiedAt.Time
+		ID:              row.ID,
+		Email:           row.Email,
+		HashedPassword:  row.HashedPassword,
+		FullName:        row.FullName,
+		Phone:           convert.PtrIfValid(row.Phone.String, row.Phone.Valid),
+		AvatarURL:       convert.PtrIfValid(row.AvatarUrl.String, row.AvatarUrl.Valid),
+		Gender:          convert.PtrIfValid(models.Gender(row.Gender.UserGenderEnum), row.Gender.Valid),
+		DateOfBirth:     convert.PtrIfValid(row.DateOfBirth.Time, row.DateOfBirth.Valid),
+		EmailVerifiedAt: convert.PtrIfValid(row.EmailVerifiedAt.Time, row.EmailVerifiedAt.Valid),
+		Status:          models.UserStatus(row.Status),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
 	}
 
 	return user

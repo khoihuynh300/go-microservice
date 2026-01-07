@@ -9,7 +9,7 @@ import (
 
 type RefreshTokenRepository interface {
 	Repository
-	Save(ctx context.Context, refreshToken *models.RefreshToken) error
-	FindByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error)
-	DeleteByID(ctx context.Context, id uuid.UUID) error
+	Create(ctx context.Context, refreshToken *models.RefreshToken) error
+	GetByToken(ctx context.Context, refreshTokenStr string) (*models.RefreshToken, error)
+	DeleteByID(ctx context.Context, id uuid.UUID) (int64, error)
 }

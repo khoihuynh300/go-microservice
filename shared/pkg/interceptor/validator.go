@@ -9,23 +9,36 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func ValidationUnaryInterceptor(validator protovalidate.Validator) grpc.UnaryServerInterceptor {
+func ValidationUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
+
+		validator, err := protovalidate.New()
+		if err != nil {
+			return nil, apperr.ToGRPC(apperr.ErrInternal)
+		}
+
 		if err := validator.Validate(req.(proto.Message)); err != nil {
-			appError := apperr.ErrValidationFailed
+			details := make([]apperr.ErrorDetail, 0)
 
 			if validationErr, ok := err.(*protovalidate.ValidationError); ok {
 				for _, violation := range validationErr.Violations {
 					fieldName := violation.Proto.GetField().GetElements()[0].GetFieldName()
 					description := violation.Proto.GetMessage()
-					appError = appError.WithDetail(fieldName, description)
+
+					details = append(details, apperr.ErrorDetail{
+						Field:   fieldName,
+						Code:    violation.Proto.GetRuleId(),
+						Message: description,
+					})
 				}
 			}
+
+			appError := apperr.NewErrValidationFailed(details)
 
 			return nil, apperr.ToGRPC(appError)
 		}

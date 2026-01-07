@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
-func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
+func LoggingUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -17,30 +17,17 @@ func LoggingUnaryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		start := time.Now()
-		md, _ := metadata.FromIncomingContext(ctx)
-		requestID := extractMetadata(md, "x-request-id")
 
-		if requestID != "" {
-			ctx = context.WithValue(ctx, "request_id", requestID)
-		}
+		logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+		logger.Info("grpc request", zap.String("method", info.FullMethod))
 
-		logger.Info("unary request", zap.String("request_id", requestID), zap.String("method", info.FullMethod))
 		resp, err := handler(ctx, req)
 
-		logger.Info("unary response",
-			zap.String("request_id", requestID),
+		logger.Info("grpc response",
 			zap.String("method", info.FullMethod),
 			zap.Duration("duration", time.Since(start)),
 			zap.Error(err),
 		)
 		return resp, err
 	}
-}
-
-func extractMetadata(md metadata.MD, key string) string {
-	values := md.Get(key)
-	if len(values) > 0 {
-		return values[0]
-	}
-	return ""
 }

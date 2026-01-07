@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type AddressType string
 
@@ -11,8 +15,8 @@ const (
 )
 
 type Address struct {
-	ID           string
-	UserID       string
+	ID           uuid.UUID
+	UserID       uuid.UUID
 	AddressType  AddressType
 	FullName     string
 	Phone        string

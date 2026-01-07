@@ -7,38 +7,48 @@ import (
 )
 
 type AppError struct {
-	Code          string
-	Message       string
-	GRPCCode      codes.Code
-	Details       map[string]any
-	OriginalError error
+	Code       string        `json:"code"`
+	Message    string        `json:"message"`
+	Details    []ErrorDetail `json:"details,omitempty"`
+	HTTPStatus int           `json:"-"`
+	GRPCCode   codes.Code    `json:"-"`
+	Err        error         `json:"-"`
 }
 
-func New(code string, message string, grpcCode codes.Code) *AppError {
+type ErrorDetail struct {
+	Field   string `json:"field"`
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message"`
+}
+
+func New(code, message string, details []ErrorDetail, httpStatus int, grpcCode codes.Code) *AppError {
 	return &AppError{
-		Code:     code,
-		Message:  message,
-		GRPCCode: grpcCode,
-		Details:  make(map[string]any),
+		Code:       code,
+		Message:    message,
+		Details:    details,
+		HTTPStatus: httpStatus,
+		GRPCCode:   grpcCode,
+	}
+}
+
+func Newf(code string, details []ErrorDetail, httpStatus int, grpcCode codes.Code, format string, args ...interface{}) *AppError {
+	return &AppError{
+		Code:       code,
+		Message:    fmt.Sprintf(format, args...),
+		Details:    details,
+		HTTPStatus: httpStatus,
+		GRPCCode:   grpcCode,
 	}
 }
 
 func (e *AppError) Error() string {
-	if e.OriginalError != nil {
-		return fmt.Sprintf("%s: %v", e.Message, e.OriginalError)
+	if e.Err != nil {
+		return fmt.Sprintf("%s: %s (caused by: %v)", e.Code, e.Message, e.Err)
 	}
-	return e.Message
+	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-func (e *AppError) WithDetail(key string, value any) *AppError {
-	if e.Details == nil {
-		e.Details = make(map[string]any)
-	}
-	e.Details[key] = value
-	return e
-}
-
-func (e *AppError) WithOriginalError(err error) *AppError {
-	e.OriginalError = err
+func (e *AppError) Wrap(err error) *AppError {
+	e.Err = err
 	return e
 }

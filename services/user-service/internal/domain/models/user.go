@@ -9,10 +9,18 @@ import (
 type UserStatus string
 
 const (
-	UserStatusPending  UserStatus = "pending"
-	UserStatusActive   UserStatus = "active"
-	UserStatusInactive UserStatus = "inactive"
-	UserStatusBanned   UserStatus = "banned"
+	UserStatusPending   UserStatus = "pending"
+	UserStatusActive    UserStatus = "active"
+	UserStatusInactive  UserStatus = "inactive"
+	UserStatusSuspended UserStatus = "suspended"
+)
+
+type Gender string
+
+const (
+	GenderMale   Gender = "male"
+	GenderFemale Gender = "female"
+	GenderOther  Gender = "other"
 )
 
 type User struct {
@@ -20,10 +28,10 @@ type User struct {
 	Email           string
 	HashedPassword  string
 	FullName        string
-	Phone           string
-	AvatarURL       string
+	Phone           *string
+	AvatarURL       *string
 	DateOfBirth     *time.Time
-	Gender          string
+	Gender          *Gender
 	Status          UserStatus
 	EmailVerifiedAt *time.Time
 	CreatedAt       time.Time
@@ -32,10 +40,6 @@ type User struct {
 
 func (u *User) IsActive() bool {
 	return u.Status == UserStatusActive
-}
-
-func (u *User) IsBanned() bool {
-	return u.Status == UserStatusBanned
 }
 
 func (u *User) IsEmailVerified() bool {
