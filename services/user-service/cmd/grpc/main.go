@@ -14,9 +14,11 @@ import (
 	"github.com/khoihuynh300/go-microservice/shared/pkg/cache"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/interceptor"
 	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/kafka"
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/caching"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/events/publisher"
 	grpchandler "github.com/khoihuynh300/go-microservice/user-service/internal/handler/grpc"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository/impl"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
@@ -86,6 +88,10 @@ func run() error {
 	}
 	tokenCache := caching.NewTokenCache(redis)
 
+	// event publisher
+	producer := kafka.NewProducer(config.KafkaBrokers)
+	eventPublisher := publisher.NewKafkaEventPublisher(producer)
+
 	// services
 	authService := service.NewAuthService(
 		userRepository,
@@ -93,6 +99,7 @@ func run() error {
 		tokenCache,
 		hasher,
 		jwtService,
+		eventPublisher,
 	)
 	userService := service.NewUserService(userRepository)
 	addressService := service.NewAddressService(userRepository, addressRepository)

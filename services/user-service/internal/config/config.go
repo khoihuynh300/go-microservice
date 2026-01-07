@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -27,6 +28,9 @@ var (
 	RedisPort     int
 	RedisPassword string
 	RedisDB       int
+
+	// Kafka
+	KafkaBrokers []string
 )
 
 func LoadConfig() error {
@@ -72,6 +76,11 @@ func LoadConfig() error {
 	RedisPort = viper.GetInt("REDIS_PORT")
 	RedisPassword = viper.GetString("REDIS_PASSWORD")
 	RedisDB = viper.GetInt("REDIS_DB")
+
+	KafkaBrokers = strings.Split(
+		viper.GetString("KAFKA_BROKERS"),
+		",",
+	)
 
 	return nil
 }

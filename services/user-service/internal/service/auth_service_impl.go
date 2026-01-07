@@ -11,6 +11,7 @@ import (
 	"github.com/khoihuynh300/go-microservice/user-service/internal/caching"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
+	"github.com/khoihuynh300/go-microservice/user-service/internal/events/publisher"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/security/jwtprovider"
 	passwordhasher "github.com/khoihuynh300/go-microservice/user-service/internal/security/password"
@@ -24,6 +25,7 @@ type authService struct {
 	tokenCache       *caching.TokenCache
 	passwordHasher   passwordhasher.PasswordHasher
 	jwtService       jwtprovider.JwtProvider
+	eventPublisher   publisher.EventPublisher
 }
 
 func NewAuthService(
@@ -32,6 +34,7 @@ func NewAuthService(
 	tokenCache *caching.TokenCache,
 	passwordHasher passwordhasher.PasswordHasher,
 	jwtService jwtprovider.JwtProvider,
+	eventPublisher publisher.EventPublisher,
 ) AuthService {
 	return &authService{
 		userRepo:         userRepo,
@@ -39,6 +42,7 @@ func NewAuthService(
 		tokenCache:       tokenCache,
 		passwordHasher:   passwordHasher,
 		jwtService:       jwtService,
+		eventPublisher:   eventPublisher,
 	}
 }
 
@@ -71,12 +75,15 @@ func (s *authService) Register(ctx context.Context, req *request.RegisterRequest
 			return err
 		}
 
-		_, err := s.tokenCache.SetEmailVerifyToken(ctx, user.Email)
+		verifyToken, err := s.tokenCache.SetEmailVerifyToken(ctx, user.Email)
 		if err != nil {
 			return err
 		}
 
-		// TODO: publish event to send verification email with verifyToken
+		err = s.eventPublisher.PublishVerifyEmail(ctx, user, verifyToken)
+		if err != nil {
+			return err
+		}
 
 		logger.Info("Register success",
 			zap.String("user_id", user.ID.String()),
@@ -133,6 +140,11 @@ func (s *authService) VerifyEmail(ctx context.Context, token string) error {
 		return apperr.ErrUserNotFound
 	}
 
+	err = s.eventPublisher.PublishEmailVerifySuccess(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+
 	logger.Info("Email verification success",
 		zap.String("user_id", user.ID.String()),
 	)
@@ -158,12 +170,14 @@ func (s *authService) ResendVerificationEmail(ctx context.Context, email string)
 		return apperr.ErrEmailAlreadyVerified
 	}
 
-	_, err = s.tokenCache.SetEmailVerifyToken(ctx, user.Email)
+	verifyToken, err := s.tokenCache.SetEmailVerifyToken(ctx, user.Email)
 	if err != nil {
 		return err
 	}
-
-	// TODO: publish event to send verification email with verifyToken
+	err = s.eventPublisher.PublishVerifyEmail(ctx, user, verifyToken)
+	if err != nil {
+		return err
+	}
 
 	logger.Info("Resend verification email success",
 		zap.String("user_id", user.ID.String()),
@@ -327,12 +341,17 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 		return apperr.ErrUserNotFound
 	}
 
-	_, err = s.tokenCache.SetPasswordResetToken(ctx, user.Email)
+	token, err := s.tokenCache.SetPasswordResetToken(ctx, user.Email)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("Forgot password token created",
+	err = s.eventPublisher.PublishForgotPassword(ctx, user, token)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("Forgot password email sent",
 		zap.String("user_id", user.ID.String()),
 	)
 
@@ -369,6 +388,11 @@ func (s *authService) ResetPassword(ctx context.Context, token string, newPasswo
 	}
 	if rowEffected == 0 {
 		return apperr.ErrUserNotFound
+	}
+
+	err = s.eventPublisher.PublishPasswordResetSuccess(ctx, user.Email)
+	if err != nil {
+		return err
 	}
 
 	logger.Info("Reset password success",
