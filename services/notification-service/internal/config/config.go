@@ -10,7 +10,8 @@ type Config struct {
 	ServiceName string `mapstructure:"SERVICE_NAME"`
 	BaseURL     string `mapstructure:"BASE_URL" validate:"required,url"`
 
-	KafkaBrokers []string `mapstructure:"KAFKA_BROKERS" validate:"required,dive,required"`
+	KafkaBrokers  []string `mapstructure:"KAFKA_BROKERS" validate:"required,dive,required"`
+	ConsumerGroup string   `mapstructure:"KAFKA_CONSUMER_GROUP"`
 
 	SMTPHost     string `mapstructure:"SMTP_HOST" validate:"required"`
 	SMTPPort     int    `mapstructure:"SMTP_PORT" validate:"required"`
@@ -31,6 +32,7 @@ func LoadConfig() error {
 
 	viper.SetDefault("SERVICE_NAME", "notification-service")
 	viper.SetDefault("ENV", "PROD")
+	viper.SetDefault("KAFKA_CONSUMER_GROUP", "notification-service-group")
 	viper.SetDefault("USE_TLS", true)
 
 	if err := viper.Unmarshal(&config); err != nil {
@@ -58,6 +60,10 @@ func GetBaseURL() string {
 
 func GetKafkaBrokers() []string {
 	return config.KafkaBrokers
+}
+
+func GetKafkaConsumerGroup() string {
+	return config.ConsumerGroup
 }
 
 func GetSMTPHost() string {

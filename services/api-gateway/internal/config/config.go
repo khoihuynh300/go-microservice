@@ -1,11 +1,11 @@
 package config
 
 import (
-	"log"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
+
+var cfg Config
 
 type Config struct {
 	ServiceName    string `mapstructure:"SERVICE_NAME"`
@@ -18,12 +18,13 @@ type Config struct {
 	Env            string `mapstructure:"ENV" validate:"oneof=DEV STAG PROD TEST"`
 }
 
-func LoadConfig() *Config {
-	var cfg Config
+func LoadConfig() error {
 	validate := validator.New()
 
 	viper.SetConfigFile(".env")
-	_ = viper.ReadInConfig()
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
 
 	viper.AutomaticEnv()
 
@@ -35,12 +36,44 @@ func LoadConfig() *Config {
 	viper.SetDefault("ENV", "PROD")
 
 	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatalf("cannot load config: %v", err)
+		return err
 	}
 
 	if err := validate.Struct(cfg); err != nil {
-		log.Fatalf("cannot load config: %v", err)
+		return err
 	}
 
-	return &cfg
+	return nil
+}
+
+func GetServiceName() string {
+	return cfg.ServiceName
+}
+
+func GetHost() string {
+	return cfg.Host
+}
+
+func GetPort() string {
+	return cfg.Port
+}
+
+func GetReadTimeout() int {
+	return cfg.ReadTimeout
+}
+
+func GetWriteTimeout() int {
+	return cfg.WriteTimeout
+}
+
+func GetSecret() string {
+	return cfg.Secret
+}
+
+func GetUserServiceURL() string {
+	return cfg.UserServiceURL
+}
+
+func GetEnv() string {
+	return cfg.Env
 }

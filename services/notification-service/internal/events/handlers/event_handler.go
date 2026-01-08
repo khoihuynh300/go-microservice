@@ -8,5 +8,4 @@ import (
 
 type EventHandler interface {
 	HandleEvent(ctx context.Context, event *events.Event) error
-	CanHandle(eventType string) bool
 }

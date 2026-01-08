@@ -20,7 +20,7 @@ var publicRoutes = []string{
 	"/v1/auth/*",
 }
 
-func AuthMiddleware(next http.Handler, cfg *config.Config) http.Handler {
+func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isPublicRoute(r.URL.Path) {
 			next.ServeHTTP(w, r)
@@ -39,7 +39,7 @@ func AuthMiddleware(next http.Handler, cfg *config.Config) http.Handler {
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, BearerPrefix)
-		claims, err := jwtvalidator.VerifyAccessToken(tokenString, cfg.Secret)
+		claims, err := jwtvalidator.VerifyAccessToken(tokenString, config.GetSecret())
 		if err != nil {
 			if err == jwtvalidator.ErrTokenExpired {
 				writeErrorResponse(w, apperr.ErrTokenExpired)

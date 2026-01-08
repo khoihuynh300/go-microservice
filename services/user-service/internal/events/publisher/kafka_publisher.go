@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/events"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/kafka"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/topics"
@@ -23,10 +24,13 @@ func NewKafkaEventPublisher(producer kafka.Producer) EventPublisher {
 }
 
 func (p *kafkaEventPublisher) PublishVerifyEmail(ctx context.Context, user *models.User, token string) error {
+	traceID := ctx.Value(contextkeys.TraceIDKey).(string)
+
 	payload := &events.Event{
 		EventID:    uuid.NewString(),
 		EventType:  events.TypeUserRegisteredEvent,
 		OccurredAt: time.Now().UTC(),
+		TraceID:    traceID,
 		Data: &events.UserRegisteredEvent{
 			Email:    user.Email,
 			FullName: user.FullName,
@@ -41,10 +45,13 @@ func (p *kafkaEventPublisher) PublishVerifyEmail(ctx context.Context, user *mode
 }
 
 func (p *kafkaEventPublisher) PublishEmailVerifySuccess(ctx context.Context, email string) error {
+	traceID := ctx.Value(contextkeys.TraceIDKey).(string)
+
 	payload := &events.Event{
 		EventID:    uuid.NewString(),
 		EventType:  events.TypeEmailVerifySuccessEvent,
 		OccurredAt: time.Now().UTC(),
+		TraceID:    traceID,
 		Data: &events.EmailVerifySuccessEvent{
 			Email: email,
 		},
@@ -57,10 +64,13 @@ func (p *kafkaEventPublisher) PublishEmailVerifySuccess(ctx context.Context, ema
 }
 
 func (p *kafkaEventPublisher) PublishForgotPassword(ctx context.Context, user *models.User, token string) error {
+	traceID := ctx.Value(contextkeys.TraceIDKey).(string)
+
 	payload := &events.Event{
 		EventID:    uuid.NewString(),
 		EventType:  events.TypeForgotPasswordEvent,
 		OccurredAt: time.Now().UTC(),
+		TraceID:    traceID,
 		Data: &events.UserForgotPasswordEvent{
 			Email:    user.Email,
 			FullName: user.FullName,
@@ -75,10 +85,12 @@ func (p *kafkaEventPublisher) PublishForgotPassword(ctx context.Context, user *m
 }
 
 func (p *kafkaEventPublisher) PublishPasswordResetSuccess(ctx context.Context, email string) error {
+	traceID := ctx.Value(contextkeys.TraceIDKey).(string)
 	payload := &events.Event{
 		EventID:    uuid.NewString(),
 		EventType:  events.TypePasswordResetSuccessEvent,
 		OccurredAt: time.Now().UTC(),
+		TraceID:    traceID,
 		Data: &events.UserPasswordResetSuccessEvent{
 			Email: email,
 		},

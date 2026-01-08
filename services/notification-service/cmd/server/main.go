@@ -8,11 +8,13 @@ import (
 	"syscall"
 
 	"github.com/khoihuynh300/go-microservice/notification-service/internal/config"
-	"github.com/khoihuynh300/go-microservice/notification-service/internal/events/consumer"
 	"github.com/khoihuynh300/go-microservice/notification-service/internal/events/handlers"
 	"github.com/khoihuynh300/go-microservice/notification-service/internal/service"
 	"github.com/khoihuynh300/go-microservice/notification-service/internal/template"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/kafka"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/topics"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -20,11 +22,17 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
 func run() error {
-	err := config.LoadConfig()
+	if err := config.LoadConfig(); err != nil {
+		return err
+	}
+
+	logger, err := zaplogger.New(config.GetServiceName(), config.GetEnv())
 	if err != nil {
 		return err
 	}
+	defer logger.Sync()
 
 	templateParser, err := template.NewParser()
 	if err != nil {
@@ -40,7 +48,11 @@ func run() error {
 		config.GetUseTLS(),
 	)
 
-	if err := startKafkaConsumer(emailService); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	kafkaConsumer, err := startKafkaConsumer(ctx, emailService, logger)
+	if err != nil {
 		return err
 	}
 
@@ -48,24 +60,31 @@ func run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
+	logger.Info("Shutting down gracefully...")
+
+	cancel()
+
+	if err := kafkaConsumer.Close(); err != nil {
+		logger.Error("Error closing Kafka consumer", zap.Error(err))
+	}
+
+	logger.Info("Service stopped")
 	return nil
 }
 
-func startKafkaConsumer(emailService service.EmailService) error {
-	kafkaConsumer := kafka.NewConsumer(config.GetKafkaBrokers())
-	eventConsumer := consumer.NewEventConsumer(kafkaConsumer)
+func startKafkaConsumer(ctx context.Context, emailService service.EmailService, logger *zap.Logger) (kafka.Consumer, error) {
+	topicConsume := []string{topics.UserEventsTopic}
+	kafkaConsumer := kafka.NewConsumer(config.GetKafkaBrokers(), topicConsume, config.GetKafkaConsumerGroup())
 
 	userEventHandler := handlers.NewUserEventHandler(emailService, config.GetBaseURL())
-	eventConsumer.RegisterHandler(userEventHandler)
+	kafkaConsumer.RegisterHandler(topics.UserEventsTopic, userEventHandler.HandleEvent)
 
 	go func() {
-		ctx := context.Background()
-		log.Println("Listening for Kafka events...")
-
-		if err := eventConsumer.Start(ctx); err != nil {
-			log.Printf("Kafka consumer error: %v", err)
+		logger.Info("Starting Kafka consumer...")
+		if err := kafkaConsumer.Start(ctx, logger); err != nil {
+			logger.Error("Kafka consumer error", zap.Error(err))
 		}
 	}()
 
-	return nil
+	return kafkaConsumer, nil
 }

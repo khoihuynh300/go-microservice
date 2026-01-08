@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/khoihuynh300/go-microservice/notification-service/internal/service"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/events"
+	"go.uber.org/zap"
 )
 
 const (
@@ -30,6 +31,8 @@ func NewUserEventHandler(emailService service.EmailService, baseURL string) Even
 }
 
 func (h *UserEventHandler) HandleEvent(ctx context.Context, event *events.Event) error {
+	logger := zaplogger.FromContext(ctx)
+
 	switch event.EventType {
 	case events.TypeUserRegisteredEvent:
 		return h.handleUserRegistered(ctx, event)
@@ -40,12 +43,14 @@ func (h *UserEventHandler) HandleEvent(ctx context.Context, event *events.Event)
 	case events.TypePasswordResetSuccessEvent:
 		return h.handlePasswordResetSuccess(ctx, event)
 	default:
-		log.Printf("Unhandled event type: %s", event.EventType)
+		logger.Warn("Unhandled event type", zap.String("event_type", event.EventType))
 		return nil
 	}
 }
 
 func (h *UserEventHandler) handleUserRegistered(ctx context.Context, event *events.Event) error {
+	logger := zaplogger.FromContext(ctx)
+
 	jsonData, err := json.Marshal(event.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event data: %w", err)
@@ -66,15 +71,17 @@ func (h *UserEventHandler) handleUserRegistered(ctx context.Context, event *even
 	}
 
 	if err := h.emailService.SendTemplateEmail(ctx, "verify_email", []string{payload.Email}, emailData); err != nil {
-		log.Printf("Failed to send verify email: %v", err)
+		logger.Error("Failed to send verify email", zap.Error(err))
 		return fmt.Errorf("failed to send verify email: %w", err)
 	}
 
-	log.Printf("Verify email sent successfully to: %s", payload.Email)
+	logger.Info("User registered event handled successfully", zap.String("email", payload.Email))
 	return nil
 }
 
 func (h *UserEventHandler) handleEmailVerifySuccess(ctx context.Context, event *events.Event) error {
+	logger := zaplogger.FromContext(ctx)
+
 	jsonData, err := json.Marshal(event.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event data: %w", err)
@@ -92,15 +99,17 @@ func (h *UserEventHandler) handleEmailVerifySuccess(ctx context.Context, event *
 	}
 
 	if err := h.emailService.SendTemplateEmail(ctx, "email_verified", []string{payload.Email}, emailData); err != nil {
-		log.Printf("Failed to send email verified email: %v", err)
+		logger.Error("Failed to send email verified email", zap.Error(err))
 		return fmt.Errorf("failed to send email verified email: %w", err)
 	}
 
-	log.Printf("Email verified email sent to: %s", payload.Email)
+	logger.Info("Email verify success event handled successfully", zap.String("email", payload.Email))
 	return nil
 }
 
 func (h *UserEventHandler) handleUserForgotPassword(ctx context.Context, event *events.Event) error {
+	logger := zaplogger.FromContext(ctx)
+
 	jsonData, err := json.Marshal(event.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event data: %w", err)
@@ -121,15 +130,17 @@ func (h *UserEventHandler) handleUserForgotPassword(ctx context.Context, event *
 	}
 
 	if err := h.emailService.SendTemplateEmail(ctx, "forgot_password", []string{payload.Email}, emailData); err != nil {
-		log.Printf("Failed to send password reset email: %v", err)
+		logger.Error("Failed to send password reset email", zap.Error(err))
 		return fmt.Errorf("failed to send password reset email: %w", err)
 	}
 
-	log.Printf("Password reset email sent to: %s", payload.Email)
+	logger.Info("User forgot password event handled successfully", zap.String("email", payload.Email))
 	return nil
 }
 
 func (h *UserEventHandler) handlePasswordResetSuccess(ctx context.Context, event *events.Event) error {
+	logger := zaplogger.FromContext(ctx)
+
 	jsonData, err := json.Marshal(event.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event data: %w", err)
@@ -147,26 +158,10 @@ func (h *UserEventHandler) handlePasswordResetSuccess(ctx context.Context, event
 	}
 
 	if err := h.emailService.SendTemplateEmail(ctx, "password_reset_success", []string{payload.Email}, emailData); err != nil {
-		log.Printf("Failed to send password reset success email: %v", err)
+		logger.Error("Failed to send password reset success email", zap.Error(err))
 		return fmt.Errorf("failed to send password reset success email: %w", err)
 	}
 
-	log.Printf("Password reset success email sent to: %s", payload.Email)
+	logger.Info("Password reset success event handled successfully", zap.String("email", payload.Email))
 	return nil
-}
-
-func (h *UserEventHandler) CanHandle(eventType string) bool {
-	handledTypes := []string{
-		events.TypeUserRegisteredEvent,
-		events.TypeEmailVerifySuccessEvent,
-		events.TypeForgotPasswordEvent,
-		events.TypePasswordResetSuccessEvent,
-	}
-
-	for _, t := range handledTypes {
-		if t == eventType {
-			return true
-		}
-	}
-	return false
 }

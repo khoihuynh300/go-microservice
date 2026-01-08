@@ -3,10 +3,11 @@ package kafka
 import (
 	"context"
 
-	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/events"
+	"go.uber.org/zap"
 )
 
 type Consumer interface {
-	ConsumeWithHandler(ctx context.Context, handler func(context.Context, *events.Event) error) error
+	RegisterHandler(topic string, handler MessageHandler)
+	Start(ctx context.Context, logger *zap.Logger) error
 	Close() error
 }

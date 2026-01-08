@@ -16,14 +16,12 @@ import (
 )
 
 type Server struct {
-	cfg        *config.Config
 	httpServer *http.Server
 	logger     *zap.Logger
 }
 
-func New(cfg *config.Config, logger *zap.Logger) *Server {
+func New(logger *zap.Logger) *Server {
 	return &Server{
-		cfg:    cfg,
 		logger: logger,
 	}
 }
@@ -43,23 +41,25 @@ func (s *Server) Run(ctx context.Context) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	if err := userpb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, s.cfg.UserServiceURL, opts); err != nil {
+	if err := userpb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, config.GetUserServiceURL(), opts); err != nil {
 		return err
 	}
 
 	// order of middleware: Tracing -> Logging -> Auth
-	handler := middleware.AuthMiddleware(mux, s.cfg)
+	handler := middleware.AuthMiddleware(mux)
 	handler = middleware.LoggingMiddleware(handler, s.logger)
 	handler = middleware.TracingMiddleware(handler)
 
 	s.httpServer = &http.Server{
-		Addr:         fmt.Sprintf("%s:%s", s.cfg.Host, s.cfg.Port),
+		Addr:         fmt.Sprintf("%s:%s", config.GetHost(), config.GetPort()),
 		Handler:      handler,
-		ReadTimeout:  time.Duration(s.cfg.ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(s.cfg.WriteTimeout) * time.Second,
+		ReadTimeout:  time.Duration(config.GetReadTimeout()) * time.Second,
+		WriteTimeout: time.Duration(config.GetWriteTimeout()) * time.Second,
 	}
 
-	s.logger.Info("user service listening on", zap.String("addr", s.cfg.Port))
+	s.logger.Info("API Gateway listening",
+		zap.String("host", config.GetHost()),
+		zap.String("port", config.GetPort()))
 	return s.httpServer.ListenAndServe()
 }
 
