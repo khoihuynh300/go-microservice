@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
@@ -38,7 +38,7 @@ func (s *userService) GetUserByID(ctx context.Context, userID string) (*models.U
 }
 
 func (s *userService) UpdateUser(ctx context.Context, userID string, updateData *request.UpdateUserRequest) (*models.User, error) {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {

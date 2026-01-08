@@ -51,13 +51,13 @@ func run() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	logger, err := zaplogger.New(config.ServiceName, config.Env)
+	logger, err := zaplogger.New(config.GetServiceName(), config.GetEnv())
 	if err != nil {
 		return err
 	}
 	defer logger.Sync()
 
-	dbpool, err := initDB(ctx, config.DBUrl)
+	dbpool, err := initDB(config.GetDBUrl())
 	if err != nil {
 		return fmt.Errorf("failed to init db: %w", err)
 	}
@@ -65,10 +65,10 @@ func run() error {
 
 	hasher := passwordhasher.NewBcryptHasher(bcrypt.DefaultCost)
 	jwtService := jwtprovider.NewJwtService(
-		config.JwtAccessSecret,
-		config.AccessTokenTTL,
-		config.JwtRefreshSecret,
-		config.RefreshTokenTTL,
+		config.GetJwtAccessSecret(),
+		config.GetAccessTokenTTL(),
+		config.GetJwtRefreshSecret(),
+		config.GetRefreshTokenTTL(),
 	)
 
 	// repositories
@@ -78,10 +78,10 @@ func run() error {
 
 	// caching
 	redis, err := cache.NewClient(&cache.Config{
-		Host:     config.RedisHost,
-		Port:     config.RedisPort,
-		Password: config.RedisPassword,
-		DB:       config.RedisDB,
+		Host:     config.GetRedisHost(),
+		Port:     config.GetRedisPort(),
+		Password: config.GetRedisPassword(),
+		DB:       config.GetRedisDB(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to init redis: %w", err)
@@ -89,7 +89,7 @@ func run() error {
 	tokenCache := caching.NewTokenCache(redis)
 
 	// event publisher
-	producer := kafka.NewProducer(config.KafkaBrokers)
+	producer := kafka.NewProducer(config.GetKafkaBrokers())
 	eventPublisher := publisher.NewKafkaEventPublisher(producer)
 
 	// services
@@ -123,11 +123,11 @@ func run() error {
 	healthpb.RegisterHealthServer(grpcServer, healthHandler)
 	userpb.RegisterUserServiceServer(grpcServer, userHandler)
 
-	if config.Env == "DEV" {
+	if config.GetEnv() == "DEV" {
 		reflection.Register(grpcServer)
 	}
 
-	lis, err := net.Listen("tcp", config.GRPCAddr)
+	lis, err := net.Listen("tcp", config.GetGRPCAddr())
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
@@ -138,12 +138,12 @@ func run() error {
 		}
 	}()
 
-	logger.Info("user service listening on", zap.String("addr", config.GRPCAddr))
-	healthHandler.SetServingStatus(config.ServiceName, healthpb.HealthCheckResponse_SERVING)
+	logger.Info("user service listening on", zap.String("addr", config.GetGRPCAddr()))
+	healthHandler.SetServingStatus(config.GetServiceName(), healthpb.HealthCheckResponse_SERVING)
 
 	<-ctx.Done()
 	logger.Info("shutdown signal received")
-	healthHandler.SetServingStatus(config.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
+	healthHandler.SetServingStatus(config.GetServiceName(), healthpb.HealthCheckResponse_NOT_SERVING)
 
 	done := make(chan struct{})
 	go func() {
@@ -162,7 +162,7 @@ func run() error {
 	return nil
 }
 
-func initDB(ctx context.Context, dbURL string) (*pgxpool.Pool, error) {
+func initDB(dbURL string) (*pgxpool.Pool, error) {
 	dbCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

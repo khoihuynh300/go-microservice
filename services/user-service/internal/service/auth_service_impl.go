@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/caching"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
@@ -47,7 +47,7 @@ func NewAuthService(
 }
 
 func (s *authService) Register(ctx context.Context, req *request.RegisterRequest) (*models.User, error) {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	existedUser, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *authService) Register(ctx context.Context, req *request.RegisterRequest
 }
 
 func (s *authService) VerifyEmail(ctx context.Context, token string) error {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	email, err := s.tokenCache.VerifyEmailToken(ctx, token)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *authService) VerifyEmail(ctx context.Context, token string) error {
 }
 
 func (s *authService) ResendVerificationEmail(ctx context.Context, email string) error {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
@@ -187,7 +187,7 @@ func (s *authService) ResendVerificationEmail(ctx context.Context, email string)
 }
 
 func (s *authService) Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error) {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
@@ -290,7 +290,7 @@ func (s *authService) generateTokenPair(ctx context.Context, user *models.User) 
 }
 
 func (s *authService) ChangePassword(ctx context.Context, userID string, req *request.ChangePasswordRequest) error {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
@@ -332,7 +332,7 @@ func (s *authService) ChangePassword(ctx context.Context, userID string, req *re
 }
 
 func (s *authService) ForgotPassword(ctx context.Context, email string) error {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return err
@@ -359,7 +359,7 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 }
 
 func (s *authService) ResetPassword(ctx context.Context, token string, newPassword string) error {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	email, err := s.tokenCache.VerifyPasswordResetToken(ctx, token)
 	if err != nil {

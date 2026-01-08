@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
@@ -28,7 +28,7 @@ func NewAddressService(
 }
 
 func (s *addressService) CreateUserAddress(ctx context.Context, userID string, req *request.CreateUserAddressRequest) (*models.Address, error) {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
@@ -120,7 +120,7 @@ func (s *addressService) GetUserAddress(ctx context.Context, userID string, addr
 }
 
 func (s *addressService) UpdateUserAddress(ctx context.Context, userID string, addressID string, req *request.UpdateAddressRequest) (*models.Address, error) {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
@@ -203,7 +203,7 @@ func (s *addressService) UpdateUserAddress(ctx context.Context, userID string, a
 }
 
 func (s *addressService) DeleteUserAddress(ctx context.Context, userID string, addressID string) error {
-	logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+	logger := zaplogger.FromContext(ctx)
 
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {

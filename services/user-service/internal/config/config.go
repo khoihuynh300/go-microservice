@@ -1,44 +1,48 @@
 package config
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
-var (
+type Config struct {
 	// Service
-	ServiceName string
-	GRPCAddr    string
-	Env         string
+	ServiceName string `mapstructure:"SERVICE_NAME"`
+	GRPCAddr    string `mapstructure:"GRPC_ADDR"`
+	Env         string `mapstructure:"ENV"`
 
 	// Database
-	DBUrl string
+	DBUrl string `mapstructure:"DATABASE_URL" validate:"required"`
 
 	// Security
-	JwtAccessSecret  string
-	JwtRefreshSecret string
-	AccessTokenTTL   time.Duration
-	RefreshTokenTTL  time.Duration
+	JwtAccessSecret  string        `mapstructure:"JWT_ACCESS_SECRET" validate:"required"`
+	JwtRefreshSecret string        `mapstructure:"JWT_REFRESH_SECRET" validate:"required"`
+	AccessTokenTTL   time.Duration `mapstructure:"ACCESS_TOKEN_TTL"`
+	RefreshTokenTTL  time.Duration `mapstructure:"REFRESH_TOKEN_TTL"`
 
 	// Redis
-	RedisHost     string
-	RedisPort     int
-	RedisPassword string
-	RedisDB       int
+	RedisHost     string `mapstructure:"REDIS_HOST" validate:"required"`
+	RedisPort     int    `mapstructure:"REDIS_PORT" validate:"required"`
+	RedisPassword string `mapstructure:"REDIS_PASSWORD"`
+	RedisDB       int    `mapstructure:"REDIS_DB"`
 
 	// Kafka
-	KafkaBrokers []string
-)
+	KafkaBrokers []string `mapstructure:"KAFKA_BROKERS" validate:"required"`
+}
+
+var config Config
 
 func LoadConfig() error {
+	validate := validator.New()
+
 	viper.SetConfigFile(".env")
-	err := viper.ReadInConfig()
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
+
+	viper.AutomaticEnv()
 
 	viper.SetDefault("ENV", "DEV")
 	viper.SetDefault("SERVICE_NAME", "user-service")
@@ -47,40 +51,64 @@ func LoadConfig() error {
 	viper.SetDefault("REFRESH_TOKEN_TTL", "168h")
 	viper.SetDefault("REDIS_DB", 0)
 
-	requiredVars := []string{
-		"DATABASE_URL",
-		"JWT_ACCESS_SECRET",
-		"JWT_REFRESH_SECRET",
-		"REDIS_HOST",
-		"REDIS_PORT",
+	if err := viper.Unmarshal(&config); err != nil {
+		return err
 	}
 
-	for _, key := range requiredVars {
-		if !viper.IsSet(key) {
-			return fmt.Errorf("required environment variable %s is not set", key)
-		}
+	if err := validate.Struct(config); err != nil {
+		return err
 	}
-
-	Env = viper.GetString("ENV")
-	ServiceName = viper.GetString("SERVICE_NAME")
-	GRPCAddr = viper.GetString("GRPC_ADDR")
-
-	DBUrl = viper.GetString("DATABASE_URL")
-
-	JwtAccessSecret = viper.GetString("JWT_ACCESS_SECRET")
-	JwtRefreshSecret = viper.GetString("JWT_REFRESH_SECRET")
-	AccessTokenTTL = viper.GetDuration("ACCESS_TOKEN_TTL")
-	RefreshTokenTTL = viper.GetDuration("REFRESH_TOKEN_TTL")
-
-	RedisHost = viper.GetString("REDIS_HOST")
-	RedisPort = viper.GetInt("REDIS_PORT")
-	RedisPassword = viper.GetString("REDIS_PASSWORD")
-	RedisDB = viper.GetInt("REDIS_DB")
-
-	KafkaBrokers = strings.Split(
-		viper.GetString("KAFKA_BROKERS"),
-		",",
-	)
 
 	return nil
+}
+
+func GetServiceName() string {
+	return config.ServiceName
+}
+
+func GetGRPCAddr() string {
+	return config.GRPCAddr
+}
+
+func GetEnv() string {
+	return config.Env
+}
+
+func GetDBUrl() string {
+	return config.DBUrl
+}
+
+func GetJwtAccessSecret() string {
+	return config.JwtAccessSecret
+}
+
+func GetJwtRefreshSecret() string {
+	return config.JwtRefreshSecret
+}
+
+func GetAccessTokenTTL() time.Duration {
+	return config.AccessTokenTTL
+}
+
+func GetRefreshTokenTTL() time.Duration {
+	return config.RefreshTokenTTL
+}
+
+func GetRedisHost() string {
+	return config.RedisHost
+}
+
+func GetRedisPort() int {
+	return config.RedisPort
+}
+
+func GetRedisPassword() string {
+	return config.RedisPassword
+}
+func GetRedisDB() int {
+	return config.RedisDB
+}
+
+func GetKafkaBrokers() []string {
+	return config.KafkaBrokers
 }

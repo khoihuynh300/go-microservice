@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
+	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -18,7 +18,7 @@ func LoggingUnaryInterceptor() grpc.UnaryServerInterceptor {
 	) (any, error) {
 		start := time.Now()
 
-		logger, _ := ctx.Value(contextkeys.LoggerKey).(*zap.Logger)
+		logger := zaplogger.FromContext(ctx)
 		logger.Info("grpc request", zap.String("method", info.FullMethod))
 
 		resp, err := handler(ctx, req)
