@@ -1,0 +1,305 @@
+syntax = "proto3";
+
+package product;
+
+option go_package = "github.com/khoihuynh300/go-microservice/shared/proto/product;productpb";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+
+service ProductService {
+    // Product
+    rpc CreateProduct (CreateProductRequest) returns (ProductResponse) {
+        option (google.api.http) = {
+            post: "/v1/products"
+            body: "*"
+        };
+    }
+
+    rpc GetProductByID (GetProductByIDRequest) returns (ProductResponse) {
+        option (google.api.http) = {
+            get: "/v1/products/{product_id}"
+        };
+    }
+
+    rpc GetProductBySlug (GetProductBySlugRequest) returns (ProductResponse) {
+        option (google.api.http) = {
+            get: "/v1/products/{slug}"
+        };
+    }
+
+    rpc GetProductBySKU (GetProductBySKURequest) returns (ProductResponse) {
+        option (google.api.http) = {
+            get: "/v1/products/sku/{sku}"
+        };
+    }
+
+    rpc ListProducts (ListProductsRequest) returns (ListProductsResponse) {
+        option (google.api.http) = {
+            get: "/v1/products"
+        };
+    }
+    
+    rpc SearchProducts(SearchProductsRequest) returns (ListProductsResponse) {
+        option (google.api.http) = {
+            get: "/v1/products/search"
+        };
+    }
+
+    rpc UpdateProduct (UpdateProductRequest) returns (ProductResponse) {
+        option (google.api.http) = {
+            patch: "/v1/products/{product_id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteProduct (DeleteProductRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/products/{product_id}"
+        };
+    }
+
+    rpc GetProductsByIDs (GetProductsByIDsRequest) returns (ListProductsResponse);
+
+    // Category
+    rpc CreateCategory (CreateCategoryRequest) returns (CategoryResponse) {
+        option (google.api.http) = {
+            post: "/v1/categories"
+            body: "*"
+        };
+    }
+
+    rpc GetCategoryByID (GetCategoryByIDRequest) returns (CategoryResponse) {
+        option (google.api.http) = {
+            get: "/v1/categories/{category_id}"
+        };
+    }
+
+    rpc GetCategoryBySlug (GetCategoryBySlugRequest) returns (CategoryResponse) {
+        option (google.api.http) = {
+            get: "/v1/categories/slug/{slug}"
+        };
+    }
+
+    rpc ListCategories (ListCategoriesRequest) returns (ListCategoriesResponse) {
+        option (google.api.http) = {
+            get: "/v1/categories"
+        };
+    }
+
+    rpc ListRootCategories (google.protobuf.Empty) returns (ListCategoriesResponse) {
+        option (google.api.http) = {
+            get: "/v1/categories/root"
+        };
+    }
+
+    rpc ListChildCategories (ListChildCategoriesRequest) returns (ListCategoriesResponse) {
+        option (google.api.http) = {
+            get: "/v1/categories/{parent_id}/children"
+        };
+    }
+
+    rpc UpdateCategory (UpdateCategoryRequest) returns (CategoryResponse) {
+        option (google.api.http) = {
+            patch: "/v1/categories/{category_id}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteCategory (DeleteCategoryRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/categories/{category_id}"
+        };
+    }
+
+    // Product Image
+    rpc AddProductImage (AddProductImageRequest) returns (ProductImage) {
+        option (google.api.http) = {
+            post: "/v1/products/{product_id}/images"
+            body: "*"
+        };
+    }
+
+    rpc GetProductImages (GetProductImagesRequest) returns (GetProductImagesResponse) {
+        option (google.api.http) = {
+            get: "/v1/products/{product_id}/images"
+        };
+    }
+
+    rpc DeleteProductImage (DeleteProductImageRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/products/{product_id}/images/{image_id}"
+        };
+    }
+}
+
+// Product Messages
+
+message CreateProductRequest {
+    string name = 1;
+    string sku = 2;
+    string slug = 3;
+    string description = 4;
+    string category_id = 5;
+    double price = 6;
+}
+
+message GetProductByIDRequest {
+    string product_id = 1;
+}
+
+message GetProductBySlugRequest {
+    string slug = 1;
+}
+
+message GetProductBySKURequest {
+    string sku = 1;
+}
+
+message ListProductsRequest {
+    google.protobuf.StringValue category_id = 1;
+    int32 page = 3;
+    int32 page_size = 4;
+}
+
+message SearchProductsRequest {
+    string search = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+}
+
+message UpdateProductRequest {
+    string product_id = 1;
+    google.protobuf.StringValue name = 2;
+    google.protobuf.StringValue sku = 3;
+    google.protobuf.StringValue slug = 4;
+    google.protobuf.StringValue description = 5;
+    google.protobuf.StringValue category_id = 6;
+    google.protobuf.DoubleValue price = 7;
+}
+
+message DeleteProductRequest {
+    string product_id = 1;
+}
+
+message GetProductsByIDsRequest {
+    repeated string ids = 1;
+}
+
+message Product {
+    string id = 1;
+    string name = 2;
+    string sku = 3;
+    string slug = 4;
+    string description = 5;
+    string category_id = 6;
+    double price = 7;
+    string thumbnail = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+}
+
+message ProductResponse {
+    Product product = 1;
+}
+
+message ListProductsResponse {
+    repeated Product products = 1;
+    int64 total = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+    int32 total_pages = 5;
+}
+
+// Category Messages
+
+message CreateCategoryRequest {
+    google.protobuf.StringValue parent_id = 1;
+    string name = 2;
+    string slug = 3;
+    string description = 4;
+}
+
+message GetCategoryByIDRequest {
+    string category_id = 1;
+}
+
+message GetCategoryBySlugRequest {
+    string slug = 1;
+}
+
+message ListCategoriesRequest {
+    google.protobuf.StringValue parent_id = 1;
+}
+
+message ListChildCategoriesRequest {
+    string parent_id = 1;
+}
+
+message UpdateCategoryRequest {
+    string category_id = 1;
+    google.protobuf.StringValue name = 2;
+    google.protobuf.StringValue slug = 3;
+    google.protobuf.StringValue description = 4;
+    google.protobuf.StringValue parent_id = 5;
+}
+
+message DeleteCategoryRequest {
+    string category_id = 1;
+}
+
+message Category {
+    string id = 1;
+    string name = 2;
+    google.protobuf.StringValue parent_id = 3;
+    string slug = 4;
+    string description = 5;
+    string image_url = 6;
+    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
+}
+
+message CategoryResponse {
+    Category category = 1;
+}
+
+message ListCategoriesResponse {
+    repeated Category categories = 1;
+    int64 total = 2;
+}
+
+// Product Image Messages
+
+message AddProductImageRequest {
+    string product_id = 1;
+    string image_url = 2;
+    int32 position = 3;
+}
+
+message GetProductImagesRequest {
+    string product_id = 1;
+}
+
+message DeleteProductImageRequest {
+    string product_id = 1;
+    string image_id = 2;
+}
+
+message ProductImage {
+    string id = 1;
+    string product_id = 2;
+    string image_url = 3;
+    int32 position = 4;
+    google.protobuf.Timestamp created_at = 5;
+}
+
+message ProductImagesResponse {
+    repeated ProductImage images = 1;
+}
+
+message GetProductImagesResponse {
+    repeated ProductImage images = 1;
+}

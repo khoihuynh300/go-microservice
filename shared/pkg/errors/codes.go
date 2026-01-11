@@ -61,6 +61,19 @@ var (
 
 	// address
 	ErrAddressNotFound = New("ADDRESS_NOT_FOUND", "Address not found", nil, http.StatusNotFound, codes.NotFound)
+
+	// product
+	ErrProductNotFound      = New("PRODUCT_NOT_FOUND", "Product not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrProductAlreadyExists = New("PRODUCT_ALREADY_EXISTS", "Product already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrProductSKUExists     = New("PRODUCT_SKU_EXISTS", "Product with the given SKU already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrProductSlugExists    = New("PRODUCT_SLUG_EXISTS", "Product with the given slug already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrProductImageNotFound = New("PRODUCT_IMAGE_NOT_FOUND", "Product image not found", nil, http.StatusNotFound, codes.NotFound)
+
+	// category
+	ErrCategoryNotFound      = New("CATEGORY_NOT_FOUND", "Category not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrCategoryAlreadyExists = New("CATEGORY_ALREADY_EXISTS", "Category already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrCategorySlugExists    = New("CATEGORY_SLUG_EXISTS", "Category with the given slug already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrCategoryHasProducts   = New("CATEGORY_HAS_PRODUCTS", "Category has associated products and cannot be deleted", nil, http.StatusConflict, codes.FailedPrecondition)
 )
 
 func NewErrValidationFailed(details []ErrorDetail) *AppError {
