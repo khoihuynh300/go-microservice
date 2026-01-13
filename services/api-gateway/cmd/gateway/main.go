@@ -17,9 +17,6 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -33,36 +30,28 @@ func main() {
 
 	logger.Info("Starting API Gateway", zap.String("service", config.GetServiceName()), zap.String("env", config.GetEnv()))
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	srv, err := server.New(logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize server", zap.Error(err))
+	}
 
 	go func() {
-		sig := <-sigChan
-		logger.Info("Shutdown signal received", zap.String("signal", sig.String()))
-		cancel()
-	}()
-
-	srv := server.New(logger)
-
-	errChan := make(chan error, 1)
-	go func() {
-		if err := srv.Run(ctx); err != nil && err != http.ErrServerClosed {
-			errChan <- err
+		if err := srv.Run(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server start failed", zap.Error(err))
 		}
 	}()
 
-	select {
-	case err := <-errChan:
-		logger.Fatal("Server error", zap.Error(err))
-	case <-ctx.Done():
-		logger.Info("Shutting down gracefully...")
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer shutdownCancel()
+	sig := <-stop
+	logger.Info("Shutdown signal received", zap.String("signal", sig.String()))
 
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			logger.Error("Error during shutdown", zap.Error(err))
-		}
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Error during shutdown", zap.Error(err))
 	}
 
 	logger.Info("API Gateway shutdown complete")
