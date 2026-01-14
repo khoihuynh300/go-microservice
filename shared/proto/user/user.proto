@@ -65,12 +65,12 @@ service UserService {
         };
     }
 
-    // rpc UpdateAvatar (UpdateAvatarRequest) returns (UpdateUserResponse) {
-    //     option (google.api.http) = {
-    //         patch: "/v1/users/me/avatar"
-    //         body: "*"
-    //     };
-    // }
+    rpc UpdateAvatar (UpdateAvatarRequest) returns (UpdateUserResponse) {
+        option (google.api.http) = {
+            patch: "/v1/users/me/avatar"
+            body: "*"
+        };
+    }
 
     rpc ChangePassword (ChangePasswordRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
@@ -180,6 +180,10 @@ message UpdateUserRequest {
     optional string gender = 3 [(buf.validate.field).string = {
         in: ["male", "female", "other"]
     }];
+}
+
+message UpdateAvatarRequest {
+    string avatar_url = 1 [(buf.validate.field).string.uri = true];
 }
 
 message UpdateUserResponse {

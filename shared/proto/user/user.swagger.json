@@ -443,6 +443,38 @@
         ]
       }
     },
+    "/v1/users/me/avatar": {
+      "patch": {
+        "operationId": "UserService_UpdateAvatar",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/userUpdateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/userUpdateAvatarRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
     "/v1/users/me/change-password": {
       "post": {
         "operationId": "UserService_ChangePassword",
@@ -782,6 +814,14 @@
           "type": "string"
         },
         "refreshToken": {
+          "type": "string"
+        }
+      }
+    },
+    "userUpdateAvatarRequest": {
+      "type": "object",
+      "properties": {
+        "avatarUrl": {
           "type": "string"
         }
       }

@@ -158,6 +158,22 @@ func (s *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 	}, nil
 }
 
+func (s *UserHandler) UpdateAvatar(ctx context.Context, req *userpb.UpdateAvatarRequest) (*userpb.UpdateUserResponse, error) {
+	userID, ok := ctx.Value(contextkeys.UserIDKey).(string)
+	if !ok {
+		return nil, apperr.ErrUnauthenticated
+	}
+
+	updatedUser, err := s.userService.UpdateAvatar(ctx, userID, req.AvatarUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &userpb.UpdateUserResponse{
+		User: toUserResponse(updatedUser),
+	}, nil
+}
+
 func (s *UserHandler) ChangePassword(ctx context.Context, req *userpb.ChangePasswordRequest) (*emptypb.Empty, error) {
 	userID, ok := ctx.Value(contextkeys.UserIDKey).(string)
 	if !ok {

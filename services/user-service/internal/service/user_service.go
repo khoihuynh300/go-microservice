@@ -10,4 +10,5 @@ import (
 type UserService interface {
 	GetUserByID(ctx context.Context, userID string) (*models.User, error)
 	UpdateUser(ctx context.Context, userID string, updateData *request.UpdateUserRequest) (*models.User, error)
+	UpdateAvatar(ctx context.Context, userID string, avatarURL string) (*models.User, error)
 }

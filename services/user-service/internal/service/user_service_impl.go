@@ -75,3 +75,34 @@ func (s *userService) UpdateUser(ctx context.Context, userID string, updateData 
 	logger.Info("Updated user profile", zap.String("userID", userID))
 	return user, nil
 }
+
+func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarURL string) (*models.User, error) {
+	logger := zaplogger.FromContext(ctx)
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userUUID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, apperr.ErrUserNotFound
+	}
+
+	user.AvatarURL = &avatarURL
+
+	rowEffected, err := s.userRepo.UpdateAvatar(ctx, userUUID, avatarURL)
+	if err != nil {
+		return nil, err
+	}
+	if rowEffected == 0 {
+		return nil, apperr.ErrUserNotFound
+	}
+
+	logger.Info("Updated user avatar", zap.String("userID", userID))
+
+	return user, nil
+}
