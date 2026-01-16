@@ -7,7 +7,7 @@ CREATE TABLE users (
     hashed_password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    avatar_url TEXT,
+    avatar_url TEXT UNIQUE,
     date_of_birth DATE,
     gender user_gender_enum,
     status user_status_enum NOT NULL DEFAULT 'pending',

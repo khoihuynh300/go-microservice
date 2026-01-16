@@ -13,7 +13,6 @@ type AuthService interface {
 	ResendVerificationEmail(ctx context.Context, email string) error
 	Login(ctx context.Context, req *request.LoginRequest) (*models.User, string, string, error)
 	RefreshToken(ctx context.Context, refreshTokenStr string) (string, string, error)
-	generateTokenPair(ctx context.Context, user *models.User) (string, string, error)
 	ChangePassword(ctx context.Context, userID string, req *request.ChangePasswordRequest) error
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token string, newPassword string) error

@@ -30,6 +30,13 @@ type Config struct {
 
 	// Kafka
 	KafkaBrokers []string `mapstructure:"KAFKA_BROKERS" validate:"required"`
+
+	// MinIO
+	MinIOEndpoint   string `mapstructure:"MINIO_ENDPOINT" validate:"required"`
+	MinIOAccessKey  string `mapstructure:"MINIO_ACCESS_KEY" validate:"required"`
+	MinIOSecretKey  string `mapstructure:"MINIO_SECRET_KEY" validate:"required"`
+	MinIOBucketName string `mapstructure:"MINIO_BUCKET_NAME" validate:"required"`
+	MinIOUseSSL     bool   `mapstructure:"MINIO_USE_SSL"`
 }
 
 var config Config
@@ -111,4 +118,24 @@ func GetRedisDB() int {
 
 func GetKafkaBrokers() []string {
 	return config.KafkaBrokers
+}
+
+func GetMinIOEndpoint() string {
+	return config.MinIOEndpoint
+}
+
+func GetMinIOAccessKey() string {
+	return config.MinIOAccessKey
+}
+
+func GetMinIOSecretKey() string {
+	return config.MinIOSecretKey
+}
+
+func GetMinIOBucketName() string {
+	return config.MinIOBucketName
+}
+
+func GetMinIOUseSSL() bool {
+	return config.MinIOUseSSL
 }

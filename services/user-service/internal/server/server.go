@@ -10,6 +10,7 @@ import (
 	"github.com/khoihuynh300/go-microservice/shared/pkg/cache"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/interceptor"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/messaging/kafka"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/storage"
 	userpb "github.com/khoihuynh300/go-microservice/shared/proto/user"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/caching"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/config"
@@ -66,6 +67,17 @@ func New(logger *zap.Logger) (*Server, error) {
 	producer := kafka.NewProducer(config.GetKafkaBrokers())
 	eventPublisher := publisher.NewKafkaEventPublisher(producer)
 
+	minioStorage, err := storage.NewMinIOStorage(storage.MinIOConfig{
+		Endpoint:   config.GetMinIOEndpoint(),
+		AccessKey:  config.GetMinIOAccessKey(),
+		SecretKey:  config.GetMinIOSecretKey(),
+		BucketName: config.GetMinIOBucketName(),
+		UseSSL:     config.GetMinIOUseSSL(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to init minio storage: %w", err)
+	}
+
 	authService := service.NewAuthService(
 		userRepository,
 		refreshTokenRepository,
@@ -74,7 +86,7 @@ func New(logger *zap.Logger) (*Server, error) {
 		jwtService,
 		eventPublisher,
 	)
-	userService := service.NewUserService(userRepository)
+	userService := service.NewUserService(userRepository, minioStorage)
 	addressService := service.NewAddressService(userRepository, addressRepository)
 
 	healthHandler := health.NewServer()

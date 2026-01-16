@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 	zaplogger "github.com/khoihuynh300/go-microservice/shared/pkg/logger"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/storage"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/dto/request"
 	"github.com/khoihuynh300/go-microservice/user-service/internal/repository"
@@ -13,11 +14,15 @@ import (
 )
 
 type userService struct {
-	userRepo repository.UserRepository
+	userRepo     repository.UserRepository
+	imageStorage storage.Storage
 }
 
-func NewUserService(userRepo repository.UserRepository) UserService {
-	return &userService{userRepo: userRepo}
+func NewUserService(userRepo repository.UserRepository, imageStorage storage.Storage) UserService {
+	return &userService{
+		userRepo:     userRepo,
+		imageStorage: imageStorage,
+	}
 }
 
 func (s *userService) GetUserByID(ctx context.Context, userID string) (*models.User, error) {
@@ -90,6 +95,14 @@ func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarURL
 	}
 	if user == nil {
 		return nil, apperr.ErrUserNotFound
+	}
+
+	if user.AvatarURL != nil && *user.AvatarURL != "" {
+		go func(oldAvatarURL string) {
+			if err := s.imageStorage.Delete(context.Background(), oldAvatarURL); err != nil {
+				logger.Error("Failed to delete old avatar", zap.String("url", oldAvatarURL), zap.Error(err))
+			}
+		}(*user.AvatarURL)
 	}
 
 	user.AvatarURL = &avatarURL
