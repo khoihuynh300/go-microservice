@@ -34,6 +34,26 @@ const (
 	CodeAccountInactive      = "ACCOUNT_INACTIVE"
 	CodeUserNotFound         = "USER_NOT_FOUND"
 	CodeEmailAlreadyVerified = "EMAIL_ALREADY_VERIFIED"
+
+	// address
+	CodeAddressNotFound = "ADDRESS_NOT_FOUND"
+
+	// product
+
+	CodeProductNotFound      = "PRODUCT_NOT_FOUND"
+	CodeProductAlreadyExists = "PRODUCT_ALREADY_EXISTS"
+	CodeProductSKUExists     = "PRODUCT_SKU_EXISTS"
+	CodeProductSlugExists    = "PRODUCT_SLUG_EXISTS"
+	CodeProductImageNotFound = "PRODUCT_IMAGE_NOT_FOUND"
+
+	// category
+	CodeCategoryNotFound          = "CATEGORY_NOT_FOUND"
+	CodeParentCategoryNotFound    = "PARENT_CATEGORY_NOT_FOUND"
+	CodeCategoryCannotBeOwnParent = "CATEGORY_CANNOT_BE_OWN_PARENT"
+	CodeCategoryAlreadyExists     = "CATEGORY_ALREADY_EXISTS"
+	CodeCategorySlugExists        = "CATEGORY_SLUG_EXISTS"
+	CodeCategoryHasProducts       = "CATEGORY_HAS_PRODUCTS"
+	CodeCategoryHasChildren       = "CATEGORY_HAS_CHILDREN"
 )
 
 var (
@@ -60,20 +80,23 @@ var (
 	ErrEmailAlreadyVerified = New(CodeEmailAlreadyVerified, "Email already verified", nil, http.StatusConflict, codes.FailedPrecondition)
 
 	// address
-	ErrAddressNotFound = New("ADDRESS_NOT_FOUND", "Address not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrAddressNotFound = New(CodeAddressNotFound, "Address not found", nil, http.StatusNotFound, codes.NotFound)
 
 	// product
-	ErrProductNotFound      = New("PRODUCT_NOT_FOUND", "Product not found", nil, http.StatusNotFound, codes.NotFound)
-	ErrProductAlreadyExists = New("PRODUCT_ALREADY_EXISTS", "Product already exists", nil, http.StatusConflict, codes.AlreadyExists)
-	ErrProductSKUExists     = New("PRODUCT_SKU_EXISTS", "Product with the given SKU already exists", nil, http.StatusConflict, codes.AlreadyExists)
-	ErrProductSlugExists    = New("PRODUCT_SLUG_EXISTS", "Product with the given slug already exists", nil, http.StatusConflict, codes.AlreadyExists)
-	ErrProductImageNotFound = New("PRODUCT_IMAGE_NOT_FOUND", "Product image not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrProductNotFound      = New(CodeProductNotFound, "Product not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrProductAlreadyExists = New(CodeProductAlreadyExists, "Product already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrProductSKUExists     = New(CodeProductSKUExists, "Product with the given SKU already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrProductSlugExists    = New(CodeProductSlugExists, "Product with the given slug already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrProductImageNotFound = New(CodeProductImageNotFound, "Product image not found", nil, http.StatusNotFound, codes.NotFound)
 
 	// category
-	ErrCategoryNotFound      = New("CATEGORY_NOT_FOUND", "Category not found", nil, http.StatusNotFound, codes.NotFound)
-	ErrCategoryAlreadyExists = New("CATEGORY_ALREADY_EXISTS", "Category already exists", nil, http.StatusConflict, codes.AlreadyExists)
-	ErrCategorySlugExists    = New("CATEGORY_SLUG_EXISTS", "Category with the given slug already exists", nil, http.StatusConflict, codes.AlreadyExists)
-	ErrCategoryHasProducts   = New("CATEGORY_HAS_PRODUCTS", "Category has associated products and cannot be deleted", nil, http.StatusConflict, codes.FailedPrecondition)
+	ErrCategoryNotFound          = New(CodeCategoryNotFound, "Category not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrParentCategoryNotFound    = New(CodeParentCategoryNotFound, "Parent category not found", nil, http.StatusNotFound, codes.NotFound)
+	ErrCategoryCannotBeOwnParent = New(CodeCategoryCannotBeOwnParent, "Category cannot be its own parent", nil, http.StatusBadRequest, codes.InvalidArgument)
+	ErrCategoryAlreadyExists     = New(CodeCategoryAlreadyExists, "Category already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrCategorySlugExists        = New(CodeCategorySlugExists, "Category with the given slug already exists", nil, http.StatusConflict, codes.AlreadyExists)
+	ErrCategoryHasProducts       = New(CodeCategoryHasProducts, "Category has associated products and cannot be deleted", nil, http.StatusConflict, codes.FailedPrecondition)
+	ErrCategoryHasChildren       = New(CodeCategoryHasChildren, "Category has child categories and cannot be deleted", nil, http.StatusConflict, codes.FailedPrecondition)
 )
 
 func NewErrValidationFailed(details []ErrorDetail) *AppError {

@@ -108,6 +108,7 @@ func (h *ProductHandler) UpdateCategory(ctx context.Context, req *productpb.Upda
 		Name:        convert.StringWrapperToPtr(req.Name),
 		Slug:        convert.StringWrapperToPtr(req.Slug),
 		Description: convert.StringWrapperToPtr(req.Description),
+		ImageURL:    convert.StringWrapperToPtr(req.ImageUrl),
 	}
 
 	category, err := h.categoryService.UpdateCategory(ctx, input)
@@ -134,5 +135,8 @@ func toCategoryResponse(category *models.Category) *productpb.Category {
 		ParentId:    convert.PtrUUIDToStringWrapper(category.ParentID),
 		Slug:        category.Slug,
 		Description: category.Description,
+		ImageUrl:    convert.PtrToStringWrapper(category.ImageURL),
+		UpdatedAt:   convert.TimePtrToTimestamp(&category.UpdatedAt),
+		CreatedAt:   convert.TimePtrToTimestamp(&category.CreatedAt),
 	}
 }

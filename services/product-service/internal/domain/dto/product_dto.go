@@ -19,6 +19,8 @@ type UpdateProductDTO struct {
 	Description *string
 	CategoryID  *string
 	Price       *float64
+	Thumbnail   *string
+	Images      *[]string
 }
 
 type SearchProductsDTO struct {

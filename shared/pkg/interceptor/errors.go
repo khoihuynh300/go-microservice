@@ -33,15 +33,8 @@ func ErrorHandlerInterceptor() grpc.UnaryServerInterceptor {
 						zap.Error(appErr.Err),
 					)
 
-				case codes.NotFound, codes.AlreadyExists, codes.InvalidArgument:
-					logger.Debug("Client error",
-						zap.String("method", info.FullMethod),
-						zap.String("code", appErr.Code),
-						zap.String("message", appErr.Message),
-					)
-
 				default:
-					logger.Warn("Request error",
+					logger.Warn("Client error",
 						zap.String("method", info.FullMethod),
 						zap.String("code", appErr.Code),
 						zap.String("message", appErr.Message),

@@ -2,9 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/khoihuynh300/go-microservice/api-gateway/internal/config"
+	"github.com/khoihuynh300/go-microservice/api-gateway/internal/utils"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	"github.com/khoihuynh300/go-microservice/shared/pkg/storage"
 )
 
@@ -23,15 +27,25 @@ func NewUploadHandler(
 }
 
 func (h *UploadHandler) GetAvatarPresignedURL(w http.ResponseWriter, r *http.Request) {
-	h.getPresignedURL(w, r, "avatars")
+	userId := r.Context().Value(contextkeys.UserIDKey).(string)
+	userFolder := fmt.Sprintf("%s/%s", utils.AvatarFolder, userId)
+	h.getPresignedURL(w, r, userFolder)
 }
 
 func (h *UploadHandler) GetProductImagePresignedURL(w http.ResponseWriter, r *http.Request) {
-	h.getPresignedURL(w, r, "products")
+	vars := mux.Vars(r)
+	productID := vars["product_id"]
+	productFolder := fmt.Sprintf("%s/%s", utils.ProductImageFolder, productID)
+
+	h.getPresignedURL(w, r, productFolder)
 }
 
 func (h *UploadHandler) GetCategoryImagePresignedURL(w http.ResponseWriter, r *http.Request) {
-	h.getPresignedURL(w, r, "categories")
+	vars := mux.Vars(r)
+	categoryID := vars["category_id"]
+	categoryFolder := fmt.Sprintf("%s/%s", utils.CategoryImageFolder, categoryID)
+
+	h.getPresignedURL(w, r, categoryFolder)
 }
 
 func (h *UploadHandler) getPresignedURL(w http.ResponseWriter, r *http.Request, folder string) {
@@ -53,7 +67,7 @@ func (h *UploadHandler) getPresignedURL(w http.ResponseWriter, r *http.Request, 
 		Filename:    req.Filename,
 		ContentType: req.ContentType,
 		Folder:      folder,
-		ExpiresIn:   15 * time.Minute,
+		ExpiresIn:   config.GetPresignedURLExpiry(),
 	})
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "failed to generate presigned URL")

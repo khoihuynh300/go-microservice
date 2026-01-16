@@ -14,13 +14,14 @@ import (
 
 const createProductImage = `-- name: CreateProductImage :one
 INSERT INTO product_images (
-    product_id, image_url, position, created_at
+    ID, product_id, image_url, position, created_at
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 ) RETURNING id, product_id, image_url, position, created_at
 `
 
 type CreateProductImageParams struct {
+	ID        uuid.UUID
 	ProductID uuid.UUID
 	ImageUrl  string
 	Position  int32
@@ -29,6 +30,7 @@ type CreateProductImageParams struct {
 
 func (q *Queries) CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error) {
 	row := q.db.QueryRow(ctx, createProductImage,
+		arg.ID,
 		arg.ProductID,
 		arg.ImageUrl,
 		arg.Position,
@@ -45,30 +47,24 @@ func (q *Queries) CreateProductImage(ctx context.Context, arg CreateProductImage
 	return i, err
 }
 
-const deleteAllProductImages = `-- name: DeleteAllProductImages :execrows
+const deleteAllProductImages = `-- name: DeleteAllProductImages :exec
 DELETE FROM product_images
 WHERE product_id = $1
 `
 
-func (q *Queries) DeleteAllProductImages(ctx context.Context, productID uuid.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAllProductImages, productID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteAllProductImages(ctx context.Context, productID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAllProductImages, productID)
+	return err
 }
 
-const deleteProductImage = `-- name: DeleteProductImage :execrows
+const deleteProductImage = `-- name: DeleteProductImage :exec
 DELETE FROM product_images
 WHERE id = $1
 `
 
-func (q *Queries) DeleteProductImage(ctx context.Context, id uuid.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteProductImage, id)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteProductImage(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteProductImage, id)
+	return err
 }
 
 const getProductImages = `-- name: GetProductImages :many
@@ -103,7 +99,40 @@ func (q *Queries) GetProductImages(ctx context.Context, productID uuid.UUID) ([]
 	return items, nil
 }
 
-const updateImagePosition = `-- name: UpdateImagePosition :execrows
+const getProductImagesForUpdate = `-- name: GetProductImagesForUpdate :many
+SELECT id, product_id, image_url, position, created_at FROM product_images
+WHERE product_id = $1
+ORDER BY position ASC, created_at ASC
+FOR UPDATE
+`
+
+func (q *Queries) GetProductImagesForUpdate(ctx context.Context, productID uuid.UUID) ([]ProductImage, error) {
+	rows, err := q.db.Query(ctx, getProductImagesForUpdate, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductImage
+	for rows.Next() {
+		var i ProductImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProductID,
+			&i.ImageUrl,
+			&i.Position,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateImagePosition = `-- name: UpdateImagePosition :exec
 UPDATE product_images SET position = $2
 WHERE id = $1
 `
@@ -113,10 +142,7 @@ type UpdateImagePositionParams struct {
 	Position int32
 }
 
-func (q *Queries) UpdateImagePosition(ctx context.Context, arg UpdateImagePositionParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateImagePosition, arg.ID, arg.Position)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) UpdateImagePosition(ctx context.Context, arg UpdateImagePositionParams) error {
+	_, err := q.db.Exec(ctx, updateImagePosition, arg.ID, arg.Position)
+	return err
 }

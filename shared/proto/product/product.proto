@@ -27,7 +27,7 @@ service ProductService {
 
     rpc GetProductBySlug (GetProductBySlugRequest) returns (ProductResponse) {
         option (google.api.http) = {
-            get: "/v1/products/{slug}"
+            get: "/v1/products/slug/{slug}"
         };
     }
 
@@ -115,78 +115,99 @@ service ProductService {
         };
     }
 
-    // Product Image
-    rpc AddProductImage (AddProductImageRequest) returns (ProductImage) {
-        option (google.api.http) = {
-            post: "/v1/products/{product_id}/images"
-            body: "*"
-        };
-    }
-
-    rpc GetProductImages (GetProductImagesRequest) returns (GetProductImagesResponse) {
-        option (google.api.http) = {
-            get: "/v1/products/{product_id}/images"
-        };
-    }
-
-    rpc DeleteProductImage (DeleteProductImageRequest) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-            delete: "/v1/products/{product_id}/images/{image_id}"
-        };
-    }
 }
 
 // Product Messages
 
 message CreateProductRequest {
-    string name = 1;
-    string sku = 2;
-    string slug = 3;
+    string name = 1 [(buf.validate.field).string.min_len = 1];
+    string sku = 2 [(buf.validate.field).string.min_len = 1];
+    string slug = 3 [(buf.validate.field).string.min_len = 1];
     string description = 4;
-    string category_id = 5;
-    double price = 6;
+    string category_id = 5 [(buf.validate.field).string.uuid = true];
+    double price = 6 [(buf.validate.field).double.gt = 0];
 }
 
 message GetProductByIDRequest {
-    string product_id = 1;
+    string product_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetProductBySlugRequest {
-    string slug = 1;
+    string slug = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetProductBySKURequest {
-    string sku = 1;
+    string sku = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message ListProductsRequest {
     google.protobuf.StringValue category_id = 1;
-    int32 page = 3;
-    int32 page_size = 4;
+    int32 page = 3 [(buf.validate.field).int32.gte = 1];
+    int32 page_size = 4 [
+        (buf.validate.field).int32 = {
+            gte: 1,
+            lte: 100
+        }
+    ];
 }
 
 message SearchProductsRequest {
     string search = 1;
-    int32 page = 2;
-    int32 page_size = 3;
+    int32 page = 2 [(buf.validate.field).int32.gte = 1];
+    int32 page_size = 3 [
+        (buf.validate.field).int32 = {
+            gte: 1,
+            lte: 100
+        }
+    ];
 }
 
 message UpdateProductRequest {
-    string product_id = 1;
+    string product_id = 1 [(buf.validate.field).string.uuid = true];
     google.protobuf.StringValue name = 2;
     google.protobuf.StringValue sku = 3;
     google.protobuf.StringValue slug = 4;
     google.protobuf.StringValue description = 5;
-    google.protobuf.StringValue category_id = 6;
-    google.protobuf.DoubleValue price = 7;
+    google.protobuf.StringValue category_id = 6 [(buf.validate.field).string.uuid = true];
+    google.protobuf.DoubleValue price = 7 [(buf.validate.field).double.gte = 0];
+    google.protobuf.StringValue thumbnail = 8 [(buf.validate.field).string.uri = true];
+    ProductImageSet images = 9;
+}
+
+message ProductImageSet {
+    repeated string images = 1 [(buf.validate.field).repeated = {
+        unique: true,
+        items: {
+            string: {
+                uri: true
+            }
+        }
+    }];
 }
 
 message DeleteProductRequest {
-    string product_id = 1;
+    string product_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetProductsByIDsRequest {
-    repeated string ids = 1;
+    repeated string ids = 1 [
+        (buf.validate.field).repeated = {
+            min_items: 1,
+            unique: true
+        }
+    ];
+}
+
+message ProductSummary {
+  string id = 1;
+  string sku = 2;
+  string name = 3;
+  string slug = 4;
+  string category_id = 5;
+  double price = 6;
+  google.protobuf.StringValue thumbnail = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
 }
 
 message Product {
@@ -197,9 +218,10 @@ message Product {
     string description = 5;
     string category_id = 6;
     double price = 7;
-    string thumbnail = 8;
+    google.protobuf.StringValue thumbnail = 8;
     google.protobuf.Timestamp created_at = 9;
     google.protobuf.Timestamp updated_at = 10;
+    repeated string images = 11;
 }
 
 message ProductResponse {
@@ -207,7 +229,7 @@ message ProductResponse {
 }
 
 message ListProductsResponse {
-    repeated Product products = 1;
+    repeated ProductSummary products = 1;
     int64 total = 2;
     int32 page = 3;
     int32 page_size = 4;
@@ -217,38 +239,39 @@ message ListProductsResponse {
 // Category Messages
 
 message CreateCategoryRequest {
-    google.protobuf.StringValue parent_id = 1;
-    string name = 2;
-    string slug = 3;
+    google.protobuf.StringValue parent_id = 1 [(buf.validate.field).string.uuid = true];
+    string name = 2 [(buf.validate.field).string.min_len = 1];
+    string slug = 3 [(buf.validate.field).string.min_len = 1];
     string description = 4;
 }
 
 message GetCategoryByIDRequest {
-    string category_id = 1;
+    string category_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetCategoryBySlugRequest {
-    string slug = 1;
+    string slug = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message ListCategoriesRequest {
-    google.protobuf.StringValue parent_id = 1;
+    google.protobuf.StringValue parent_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message ListChildCategoriesRequest {
-    string parent_id = 1;
+    string parent_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message UpdateCategoryRequest {
-    string category_id = 1;
+    string category_id = 1 [(buf.validate.field).string.uuid = true];
     google.protobuf.StringValue name = 2;
     google.protobuf.StringValue slug = 3;
     google.protobuf.StringValue description = 4;
-    google.protobuf.StringValue parent_id = 5;
+    google.protobuf.StringValue parent_id = 5 [(buf.validate.field).string.uuid = true];
+    google.protobuf.StringValue image_url = 6 [(buf.validate.field).string.uri = true];
 }
 
 message DeleteCategoryRequest {
-    string category_id = 1;
+    string category_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message Category {
@@ -257,7 +280,7 @@ message Category {
     google.protobuf.StringValue parent_id = 3;
     string slug = 4;
     string description = 5;
-    string image_url = 6;
+    google.protobuf.StringValue image_url = 6;
     google.protobuf.Timestamp created_at = 8;
     google.protobuf.Timestamp updated_at = 9;
 }
@@ -269,37 +292,4 @@ message CategoryResponse {
 message ListCategoriesResponse {
     repeated Category categories = 1;
     int64 total = 2;
-}
-
-// Product Image Messages
-
-message AddProductImageRequest {
-    string product_id = 1;
-    string image_url = 2;
-    int32 position = 3;
-}
-
-message GetProductImagesRequest {
-    string product_id = 1;
-}
-
-message DeleteProductImageRequest {
-    string product_id = 1;
-    string image_id = 2;
-}
-
-message ProductImage {
-    string id = 1;
-    string product_id = 2;
-    string image_url = 3;
-    int32 position = 4;
-    google.protobuf.Timestamp created_at = 5;
-}
-
-message ProductImagesResponse {
-    repeated ProductImage images = 1;
-}
-
-message GetProductImagesResponse {
-    repeated ProductImage images = 1;
 }

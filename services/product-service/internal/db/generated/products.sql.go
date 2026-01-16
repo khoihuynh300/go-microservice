@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -69,8 +70,8 @@ type CreateProductParams struct {
 	CategoryID  pgtype.UUID
 	Price       pgtype.Numeric
 	Thumbnail   pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -110,6 +111,31 @@ WHERE id = $1 AND deleted_at IS NULL
 
 func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (Product, error) {
 	row := q.db.QueryRow(ctx, getProductByID, id)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Sku,
+		&i.Slug,
+		&i.Description,
+		&i.CategoryID,
+		&i.Price,
+		&i.Thumbnail,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getProductByIDForUpdate = `-- name: GetProductByIDForUpdate :one
+SELECT id, name, sku, slug, description, category_id, price, thumbnail, created_at, updated_at, deleted_at FROM products
+WHERE id = $1 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+func (q *Queries) GetProductByIDForUpdate(ctx context.Context, id uuid.UUID) (Product, error) {
+	row := q.db.QueryRow(ctx, getProductByIDForUpdate, id)
 	var i Product
 	err := row.Scan(
 		&i.ID,
@@ -316,7 +342,7 @@ func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) 
 	return items, nil
 }
 
-const softDeleteProduct = `-- name: SoftDeleteProduct :execrows
+const softDeleteProduct = `-- name: SoftDeleteProduct :exec
 UPDATE products SET
     deleted_at = $2,
     updated_at = $3
@@ -326,45 +352,42 @@ WHERE id = $1
 type SoftDeleteProductParams struct {
 	ID        uuid.UUID
 	DeletedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	UpdatedAt time.Time
 }
 
-func (q *Queries) SoftDeleteProduct(ctx context.Context, arg SoftDeleteProductParams) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteProduct, arg.ID, arg.DeletedAt, arg.UpdatedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) SoftDeleteProduct(ctx context.Context, arg SoftDeleteProductParams) error {
+	_, err := q.db.Exec(ctx, softDeleteProduct, arg.ID, arg.DeletedAt, arg.UpdatedAt)
+	return err
 }
 
-const updateProduct = `-- name: UpdateProduct :one
+const updateProduct = `-- name: UpdateProduct :exec
 UPDATE products SET
-    name = COALESCE($1, name),
-    sku = COALESCE($2, sku),
-    slug = COALESCE($3, slug),
-    description = COALESCE($4, description),
-    category_id = COALESCE($5, category_id),
-    price = COALESCE($6, price),
-    thumbnail = COALESCE($7, thumbnail),
-    updated_at = $8
-WHERE id = $9 AND deleted_at IS NULL
-RETURNING id, name, sku, slug, description, category_id, price, thumbnail, created_at, updated_at, deleted_at
+    name = $2,
+    sku = $3,
+    slug = $4,
+    description = $5,
+    category_id = $6,
+    price = $7,
+    thumbnail = $8,
+    updated_at = $9
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 type UpdateProductParams struct {
-	Name        pgtype.Text
-	Sku         pgtype.Text
-	Slug        pgtype.Text
+	ID          uuid.UUID
+	Name        string
+	Sku         string
+	Slug        string
 	Description pgtype.Text
 	CategoryID  pgtype.UUID
 	Price       pgtype.Numeric
 	Thumbnail   pgtype.Text
-	UpdatedAt   pgtype.Timestamptz
-	ID          uuid.UUID
+	UpdatedAt   time.Time
 }
 
-func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
-	row := q.db.QueryRow(ctx, updateProduct,
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
+	_, err := q.db.Exec(ctx, updateProduct,
+		arg.ID,
 		arg.Name,
 		arg.Sku,
 		arg.Slug,
@@ -373,21 +396,6 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		arg.Price,
 		arg.Thumbnail,
 		arg.UpdatedAt,
-		arg.ID,
 	)
-	var i Product
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Sku,
-		&i.Slug,
-		&i.Description,
-		&i.CategoryID,
-		&i.Price,
-		&i.Thumbnail,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
-	return i, err
+	return err
 }

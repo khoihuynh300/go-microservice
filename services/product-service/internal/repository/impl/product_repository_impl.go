@@ -30,6 +30,8 @@ func NewProductRepository(db *pgxpool.Pool) repository.ProductRepository {
 }
 
 func (r *productRepository) Create(ctx context.Context, product *models.Product) error {
+	now := time.Now()
+
 	numericPrice, err := convert.DoubleToNumeric(product.Price)
 	if err != nil {
 		return err
@@ -40,10 +42,12 @@ func (r *productRepository) Create(ctx context.Context, product *models.Product)
 		Name:        product.Name,
 		Sku:         product.SKU,
 		Slug:        product.Slug,
-		Description: pgtype.Text{String: product.Description, Valid: product.Description != ""},
+		Description: pgtype.Text{String: product.Description, Valid: true},
 		CategoryID:  pgtype.UUID{Bytes: product.CategoryID, Valid: product.CategoryID != uuid.Nil},
 		Price:       numericPrice,
-		Thumbnail:   pgtype.Text{String: product.Thumbnail, Valid: product.Thumbnail != ""},
+		Thumbnail:   convert.PtrToText(product.Thumbnail),
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	})
 
 	if err != nil {
@@ -51,13 +55,25 @@ func (r *productRepository) Create(ctx context.Context, product *models.Product)
 	}
 
 	product.ID = dbProduct.ID
-	product.CreatedAt = dbProduct.CreatedAt.Time
-	product.UpdatedAt = dbProduct.UpdatedAt.Time
+	product.CreatedAt = dbProduct.CreatedAt
+	product.UpdatedAt = dbProduct.UpdatedAt
 	return nil
 }
 
 func (r *productRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Product, error) {
 	dbProduct, err := r.queries(ctx).GetProductByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return r.toModel(&dbProduct), nil
+}
+
+func (r *productRepository) GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*models.Product, error) {
+	dbProduct, err := r.queries(ctx).GetProductByIDForUpdate(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -157,41 +173,32 @@ func (r *productRepository) Search(ctx context.Context, query string, page, page
 }
 
 func (r *productRepository) Update(ctx context.Context, product *models.Product) error {
+	now := time.Now()
+
 	numericPrice, err := convert.DoubleToNumeric(product.Price)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.queries(ctx).UpdateProduct(ctx, sqlc.UpdateProductParams{
+	return r.queries(ctx).UpdateProduct(ctx, sqlc.UpdateProductParams{
 		ID:          product.ID,
-		Name:        pgtype.Text{String: product.Name, Valid: true},
-		Sku:         pgtype.Text{String: product.SKU, Valid: true},
-		Slug:        pgtype.Text{String: product.Slug, Valid: true},
-		Description: pgtype.Text{String: product.Description, Valid: product.Description != ""},
+		Name:        product.Name,
+		Sku:         product.SKU,
+		Slug:        product.Slug,
+		Description: pgtype.Text{String: product.Description, Valid: true},
 		CategoryID:  pgtype.UUID{Bytes: product.CategoryID, Valid: product.CategoryID != uuid.Nil},
 		Price:       numericPrice,
-		Thumbnail:   pgtype.Text{String: product.Thumbnail, Valid: product.Thumbnail != ""},
+		Thumbnail:   convert.PtrToText(product.Thumbnail),
+		UpdatedAt:   now,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (r *productRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *productRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	now := time.Now()
-	_, err := r.queries(ctx).SoftDeleteProduct(ctx, sqlc.SoftDeleteProductParams{
+	return r.queries(ctx).SoftDeleteProduct(ctx, sqlc.SoftDeleteProductParams{
 		ID:        id,
 		DeletedAt: pgtype.Timestamptz{Time: now, Valid: true},
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *productRepository) toModel(dbProduct *sqlc.Product) *models.Product {
@@ -203,8 +210,8 @@ func (r *productRepository) toModel(dbProduct *sqlc.Product) *models.Product {
 		Description: dbProduct.Description.String,
 		CategoryID:  dbProduct.CategoryID.Bytes,
 		Price:       convert.NumericToDouble(dbProduct.Price),
-		Thumbnail:   dbProduct.Thumbnail.String,
-		CreatedAt:   dbProduct.CreatedAt.Time,
-		UpdatedAt:   dbProduct.UpdatedAt.Time,
+		Thumbnail:   convert.PgTextToPtr(dbProduct.Thumbnail),
+		CreatedAt:   dbProduct.CreatedAt,
+		UpdatedAt:   dbProduct.UpdatedAt,
 	}
 }

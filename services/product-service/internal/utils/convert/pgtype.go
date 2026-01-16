@@ -48,3 +48,20 @@ func NumericToDouble(n pgtype.Numeric) float64 {
 	}
 	return price
 }
+
+func PtrToText[T ~string](p *T) pgtype.Text {
+	if p == nil {
+		return pgtype.Text{}
+	}
+	return pgtype.Text{
+		String: string(*p),
+		Valid:  true,
+	}
+}
+
+func PgTextToPtr(t pgtype.Text) *string {
+	if !t.Valid {
+		return nil
+	}
+	return &t.String
+}

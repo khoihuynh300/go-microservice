@@ -158,14 +158,12 @@ func (s *MinIOStorage) generateKey(filename, folder string) string {
 	ext := filepath.Ext(filename)
 	baseFilename := strings.TrimSuffix(filepath.Base(filename), ext)
 	uniqueID := uuid.New().String()
-	timestamp := time.Now().Format("20060102")
 
 	baseFilename = strings.ReplaceAll(baseFilename, " ", "-")
 	baseFilename = strings.ToLower(baseFilename)
 
-	return fmt.Sprintf("%s/%s/%s-%s%s",
+	return fmt.Sprintf("%s/%s-%s%s",
 		folder,
-		timestamp,
 		baseFilename,
 		uniqueID[:8],
 		ext,

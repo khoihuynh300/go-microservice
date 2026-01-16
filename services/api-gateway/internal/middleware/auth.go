@@ -1,12 +1,14 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/khoihuynh300/go-microservice/api-gateway/internal/config"
 	"github.com/khoihuynh300/go-microservice/api-gateway/internal/security/jwtvalidator"
+	"github.com/khoihuynh300/go-microservice/shared/pkg/const/contextkeys"
 	mdkeys "github.com/khoihuynh300/go-microservice/shared/pkg/const/metadata"
 	apperr "github.com/khoihuynh300/go-microservice/shared/pkg/errors"
 )
@@ -41,10 +43,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		tokenString := strings.TrimPrefix(authHeader, BearerPrefix)
 		claims, err := jwtvalidator.VerifyAccessToken(tokenString, config.GetSecret())
 		if err != nil {
-			if err == jwtvalidator.ErrTokenExpired {
+			switch err {
+			case jwtvalidator.ErrTokenExpired:
 				writeErrorResponse(w, apperr.ErrTokenExpired)
 				return
-			} else if err == jwtvalidator.ErrTokenInvalid {
+			case jwtvalidator.ErrTokenInvalid:
 				writeErrorResponse(w, apperr.ErrTokenInvalid)
 				return
 			}
@@ -54,6 +57,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		r.Header.Set(mdkeys.UserIDHeader, claims.Subject)
+		ctx := context.WithValue(r.Context(), contextkeys.UserIDKey, claims.Subject)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

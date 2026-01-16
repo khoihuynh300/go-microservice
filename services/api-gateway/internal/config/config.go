@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
@@ -20,14 +22,16 @@ type Config struct {
 	Secret string `mapstructure:"SECRET" validate:"required"`
 
 	// Microservices URLs
-	UserServiceURL string `mapstructure:"USER_SERVICE_URL" validate:"required"`
+	UserServiceURL    string `mapstructure:"USER_SERVICE_URL" validate:"required"`
+	ProductServiceURL string `mapstructure:"PRODUCT_SERVICE_URL" validate:"required"`
 
 	// MinIO
-	Endpoint   string `mapstructure:"MINIO_ENDPOINT" validate:"required"`
-	AccessKey  string `mapstructure:"MINIO_ACCESS_KEY" validate:"required"`
-	SecretKey  string `mapstructure:"MINIO_SECRET_KEY" validate:"required"`
-	BucketName string `mapstructure:"MINIO_BUCKET_NAME" validate:"required"`
-	UseSSL     bool   `mapstructure:"MINIO_USE_SSL"`
+	MinIOEndpoint      string        `mapstructure:"MINIO_ENDPOINT" validate:"required"`
+	MinIOAccessKey     string        `mapstructure:"MINIO_ACCESS_KEY" validate:"required"`
+	MinIOSecretKey     string        `mapstructure:"MINIO_SECRET_KEY" validate:"required"`
+	MinIOBucketName    string        `mapstructure:"MINIO_BUCKET_NAME" validate:"required"`
+	MinIOUseSSL        bool          `mapstructure:"MINIO_USE_SSL"`
+	PresignedURLExpiry time.Duration `mapstructure:"PRESIGNED_URL_EXPIRY"`
 }
 
 func LoadConfig() error {
@@ -50,6 +54,7 @@ func LoadConfig() error {
 
 	// MinIO default values
 	viper.SetDefault("MINIO_USE_SSL", true)
+	viper.SetDefault("PRESIGNED_URL_EXPIRY", "15m")
 
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return err
@@ -60,6 +65,10 @@ func LoadConfig() error {
 	}
 
 	return nil
+}
+
+func GetEnv() string {
+	return cfg.Env
 }
 
 func GetServiceName() string {
@@ -90,26 +99,30 @@ func GetUserServiceURL() string {
 	return cfg.UserServiceURL
 }
 
-func GetEnv() string {
-	return cfg.Env
+func GetProductServiceURL() string {
+	return cfg.ProductServiceURL
 }
 
-func GetEndpoint() string {
-	return cfg.Endpoint
+func GetMinIOEndpoint() string {
+	return cfg.MinIOEndpoint
 }
 
-func GetAccessKey() string {
-	return cfg.AccessKey
+func GetMinIOAccessKey() string {
+	return cfg.MinIOAccessKey
 }
 
-func GetSecretKey() string {
-	return cfg.SecretKey
+func GetMinIOSecretKey() string {
+	return cfg.MinIOSecretKey
 }
 
-func GetBucketName() string {
-	return cfg.BucketName
+func GetMinIOBucketName() string {
+	return cfg.MinIOBucketName
 }
 
-func GetUseSSL() bool {
-	return cfg.UseSSL
+func GetMinIOUseSSL() bool {
+	return cfg.MinIOUseSSL
+}
+
+func GetPresignedURLExpiry() time.Duration {
+	return cfg.PresignedURLExpiry
 }

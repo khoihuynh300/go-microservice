@@ -7,17 +7,15 @@ import (
 )
 
 type Product struct {
-	ID             uuid.UUID `json:"id"`
-	SKU            string    `json:"sku"`
-	Name           string    `json:"name"`
-	Slug           string    `json:"slug"`
-	Description    string    `json:"description"`
-	CategoryID     uuid.UUID `json:"category_id"`
-	Price          float64   `json:"price"`
-	CompareAtPrice *float64  `json:"compare_at_price,omitempty"`
-	Thumbnail      string    `json:"thumbnail"`
-	Images         []string  `json:"images"`
-	ViewCount      int32     `json:"view_count"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID          uuid.UUID
+	SKU         string
+	Name        string
+	Slug        string
+	Description string
+	CategoryID  uuid.UUID
+	Price       float64
+	Thumbnail   *string
+	Images      []string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

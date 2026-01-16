@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS product_images (
     id UUID PRIMARY KEY,
     product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    image_url VARCHAR(512) NOT NULL,
+    image_url TEXT UNIQUE NOT NULL,
     position INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

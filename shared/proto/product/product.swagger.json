@@ -403,6 +403,36 @@
         ]
       }
     },
+    "/v1/products/slug/{slug}": {
+      "get": {
+        "operationId": "ProductService_GetProductBySlug",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/productProductResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
     "/v1/products/{productId}": {
       "get": {
         "operationId": "ProductService_GetProductByID",
@@ -497,155 +527,9 @@
           "ProductService"
         ]
       }
-    },
-    "/v1/products/{productId}/images": {
-      "get": {
-        "operationId": "ProductService_GetProductImages",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/productGetProductImagesResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "productId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ProductService"
-        ]
-      },
-      "post": {
-        "summary": "Product Image",
-        "operationId": "ProductService_AddProductImage",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/productProductImage"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "productId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/ProductServiceAddProductImageBody"
-            }
-          }
-        ],
-        "tags": [
-          "ProductService"
-        ]
-      }
-    },
-    "/v1/products/{productId}/images/{imageId}": {
-      "delete": {
-        "operationId": "ProductService_DeleteProductImage",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "type": "object",
-              "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "productId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "imageId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ProductService"
-        ]
-      }
-    },
-    "/v1/products/{slug}": {
-      "get": {
-        "operationId": "ProductService_GetProductBySlug",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/productProductResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "slug",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ProductService"
-        ]
-      }
     }
   },
   "definitions": {
-    "ProductServiceAddProductImageBody": {
-      "type": "object",
-      "properties": {
-        "imageUrl": {
-          "type": "string"
-        },
-        "position": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
     "ProductServiceUpdateCategoryBody": {
       "type": "object",
       "properties": {
@@ -659,6 +543,9 @@
           "type": "string"
         },
         "parentId": {
+          "type": "string"
+        },
+        "imageUrl": {
           "type": "string"
         }
       }
@@ -684,6 +571,12 @@
         "price": {
           "type": "number",
           "format": "double"
+        },
+        "thumbnail": {
+          "type": "string"
+        },
+        "images": {
+          "$ref": "#/definitions/productProductImageSet"
         }
       }
     },
@@ -767,18 +660,6 @@
         }
       }
     },
-    "productGetProductImagesResponse": {
-      "type": "object",
-      "properties": {
-        "images": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/productProductImage"
-          }
-        }
-      }
-    },
     "productListCategoriesResponse": {
       "type": "object",
       "properties": {
@@ -802,7 +683,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/productProduct"
+            "$ref": "#/definitions/productProductSummary"
           }
         },
         "total": {
@@ -858,28 +739,23 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
-    "productProductImage": {
+    "productProductImageSet": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "productId": {
-          "type": "string"
-        },
-        "imageUrl": {
-          "type": "string"
-        },
-        "position": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -888,6 +764,41 @@
       "properties": {
         "product": {
           "$ref": "#/definitions/productProduct"
+        }
+      }
+    },
+    "productProductSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sku": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "categoryId": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number",
+          "format": "double"
+        },
+        "thumbnail": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

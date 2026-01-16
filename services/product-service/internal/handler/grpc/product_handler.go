@@ -76,9 +76,9 @@ func (h *ProductHandler) ListProducts(ctx context.Context, req *productpb.ListPr
 		return nil, err
 	}
 
-	pbProducts := make([]*productpb.Product, len(products))
+	pbProducts := make([]*productpb.ProductSummary, len(products))
 	for i, p := range products {
-		pbProducts[i] = toProductResponse(p)
+		pbProducts[i] = toProductSummaryResponse(p)
 	}
 
 	totalPages := int32(total) / req.PageSize
@@ -107,9 +107,9 @@ func (h *ProductHandler) SearchProducts(ctx context.Context, req *productpb.Sear
 		return nil, err
 	}
 
-	pbProducts := make([]*productpb.Product, len(products))
+	pbProducts := make([]*productpb.ProductSummary, len(products))
 	for i, p := range products {
-		pbProducts[i] = toProductResponse(p)
+		pbProducts[i] = toProductSummaryResponse(p)
 	}
 
 	totalPages := int32(total) / req.PageSize
@@ -127,6 +127,11 @@ func (h *ProductHandler) SearchProducts(ctx context.Context, req *productpb.Sear
 }
 
 func (h *ProductHandler) UpdateProduct(ctx context.Context, req *productpb.UpdateProductRequest) (*productpb.ProductResponse, error) {
+	var images *[]string
+	if req.Images != nil {
+		images = &req.Images.Images
+	}
+
 	input := &dto.UpdateProductDTO{
 		ID:          req.ProductId,
 		Name:        convert.StringWrapperToPtr(req.Name),
@@ -135,6 +140,8 @@ func (h *ProductHandler) UpdateProduct(ctx context.Context, req *productpb.Updat
 		Description: convert.StringWrapperToPtr(req.Description),
 		CategoryID:  convert.StringWrapperToPtr(req.CategoryId),
 		Price:       convert.DoubleWrapperToPtr(req.Price),
+		Thumbnail:   convert.StringWrapperToPtr(req.Thumbnail),
+		Images:      images,
 	}
 
 	product, err := h.productService.UpdateProduct(ctx, input)
@@ -164,9 +171,9 @@ func (h *ProductHandler) GetProductsByIDs(ctx context.Context, req *productpb.Ge
 		return nil, err
 	}
 
-	pbProducts := make([]*productpb.Product, len(products))
+	pbProducts := make([]*productpb.ProductSummary, len(products))
 	for i, p := range products {
-		pbProducts[i] = toProductResponse(p)
+		pbProducts[i] = toProductSummaryResponse(p)
 	}
 
 	return &productpb.ListProductsResponse{
@@ -184,8 +191,23 @@ func toProductResponse(product *models.Product) *productpb.Product {
 		Description: product.Description,
 		CategoryId:  product.CategoryID.String(),
 		Price:       product.Price,
-		Thumbnail:   product.Thumbnail,
+		Thumbnail:   convert.GenericStringPtrToWrapper(product.Thumbnail),
 		CreatedAt:   timestamppb.New(product.CreatedAt),
 		UpdatedAt:   timestamppb.New(product.UpdatedAt),
+		Images:      product.Images,
+	}
+}
+
+func toProductSummaryResponse(product *models.Product) *productpb.ProductSummary {
+	return &productpb.ProductSummary{
+		Id:         product.ID.String(),
+		Name:       product.Name,
+		Sku:        product.SKU,
+		Slug:       product.Slug,
+		CategoryId: product.CategoryID.String(),
+		Price:      product.Price,
+		Thumbnail:  convert.GenericStringPtrToWrapper(product.Thumbnail),
+		CreatedAt:  timestamppb.New(product.CreatedAt),
+		UpdatedAt:  timestamppb.New(product.UpdatedAt),
 	}
 }

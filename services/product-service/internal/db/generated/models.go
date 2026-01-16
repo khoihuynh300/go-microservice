@@ -5,6 +5,8 @@
 package sqlc
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -16,8 +18,8 @@ type Category struct {
 	Slug        string
 	Description pgtype.Text
 	ImageUrl    pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 	DeletedAt   pgtype.Timestamptz
 }
 
@@ -30,8 +32,8 @@ type Product struct {
 	CategoryID  pgtype.UUID
 	Price       pgtype.Numeric
 	Thumbnail   pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 	DeletedAt   pgtype.Timestamptz
 }
 

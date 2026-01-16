@@ -6,10 +6,10 @@ CREATE TABLE IF NOT EXISTS products (
     description TEXT,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     price DECIMAL(12, 2) NOT NULL CHECK (price >= 0),
-    thumbnail VARCHAR(512),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP WITH TIME ZONE
+    thumbnail TEXT UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_products_category_id ON products(category_id);

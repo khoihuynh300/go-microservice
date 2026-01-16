@@ -16,6 +16,15 @@ INSERT INTO categories (
 SELECT * FROM categories
 WHERE id = $1 AND deleted_at IS NULL;
 
+-- name: GetCategoryByIDForUpdate :one
+SELECT * FROM categories
+WHERE id = $1 AND deleted_at IS NULL
+FOR UPDATE;
+
+-- name: GetCategoryByName :one
+SELECT * FROM categories
+WHERE name = $1 AND deleted_at IS NULL;
+
 -- name: GetCategoryBySlug :one
 SELECT * FROM categories
 WHERE slug = $1 AND deleted_at IS NULL;
@@ -42,18 +51,17 @@ SELECT * FROM categories
 WHERE parent_id = $1 AND deleted_at IS NULL
 ORDER BY name ASC;
 
--- name: UpdateCategory :one
+-- name: UpdateCategory :exec
 UPDATE categories SET
-    name = COALESCE(sqlc.narg('name'), name),
-    slug = COALESCE(sqlc.narg('slug'), slug),
-    description = COALESCE(sqlc.narg('description'), description),
-    image_url = COALESCE(sqlc.narg('image_url'), image_url),
-    parent_id = COALESCE(sqlc.narg('parent_id'), parent_id),
-    updated_at = sqlc.narg('updated_at')
-WHERE id = sqlc.arg('id') AND deleted_at IS NULL
-RETURNING *;
+    name = $2,
+    slug = $3,
+    description = $4,
+    image_url = $5,
+    parent_id = $6,
+    updated_at = $7
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: SoftDeleteCategory :execrows
+-- name: SoftDeleteCategory :exec
 UPDATE categories SET
     deleted_at = $2,
     updated_at = $3

@@ -37,9 +37,6 @@ const (
 	ProductService_ListChildCategories_FullMethodName = "/product.ProductService/ListChildCategories"
 	ProductService_UpdateCategory_FullMethodName      = "/product.ProductService/UpdateCategory"
 	ProductService_DeleteCategory_FullMethodName      = "/product.ProductService/DeleteCategory"
-	ProductService_AddProductImage_FullMethodName     = "/product.ProductService/AddProductImage"
-	ProductService_GetProductImages_FullMethodName    = "/product.ProductService/GetProductImages"
-	ProductService_DeleteProductImage_FullMethodName  = "/product.ProductService/DeleteProductImage"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -65,10 +62,6 @@ type ProductServiceClient interface {
 	ListChildCategories(ctx context.Context, in *ListChildCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
 	UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*CategoryResponse, error)
 	DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Product Image
-	AddProductImage(ctx context.Context, in *AddProductImageRequest, opts ...grpc.CallOption) (*ProductImage, error)
-	GetProductImages(ctx context.Context, in *GetProductImagesRequest, opts ...grpc.CallOption) (*GetProductImagesResponse, error)
-	DeleteProductImage(ctx context.Context, in *DeleteProductImageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type productServiceClient struct {
@@ -249,36 +242,6 @@ func (c *productServiceClient) DeleteCategory(ctx context.Context, in *DeleteCat
 	return out, nil
 }
 
-func (c *productServiceClient) AddProductImage(ctx context.Context, in *AddProductImageRequest, opts ...grpc.CallOption) (*ProductImage, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ProductImage)
-	err := c.cc.Invoke(ctx, ProductService_AddProductImage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *productServiceClient) GetProductImages(ctx context.Context, in *GetProductImagesRequest, opts ...grpc.CallOption) (*GetProductImagesResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetProductImagesResponse)
-	err := c.cc.Invoke(ctx, ProductService_GetProductImages_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *productServiceClient) DeleteProductImage(ctx context.Context, in *DeleteProductImageRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ProductService_DeleteProductImage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility.
@@ -302,10 +265,6 @@ type ProductServiceServer interface {
 	ListChildCategories(context.Context, *ListChildCategoriesRequest) (*ListCategoriesResponse, error)
 	UpdateCategory(context.Context, *UpdateCategoryRequest) (*CategoryResponse, error)
 	DeleteCategory(context.Context, *DeleteCategoryRequest) (*emptypb.Empty, error)
-	// Product Image
-	AddProductImage(context.Context, *AddProductImageRequest) (*ProductImage, error)
-	GetProductImages(context.Context, *GetProductImagesRequest) (*GetProductImagesResponse, error)
-	DeleteProductImage(context.Context, *DeleteProductImageRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -366,15 +325,6 @@ func (UnimplementedProductServiceServer) UpdateCategory(context.Context, *Update
 }
 func (UnimplementedProductServiceServer) DeleteCategory(context.Context, *DeleteCategoryRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteCategory not implemented")
-}
-func (UnimplementedProductServiceServer) AddProductImage(context.Context, *AddProductImageRequest) (*ProductImage, error) {
-	return nil, status.Error(codes.Unimplemented, "method AddProductImage not implemented")
-}
-func (UnimplementedProductServiceServer) GetProductImages(context.Context, *GetProductImagesRequest) (*GetProductImagesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetProductImages not implemented")
-}
-func (UnimplementedProductServiceServer) DeleteProductImage(context.Context, *DeleteProductImageRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteProductImage not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 func (UnimplementedProductServiceServer) testEmbeddedByValue()                        {}
@@ -703,60 +653,6 @@ func _ProductService_DeleteCategory_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ProductService_AddProductImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddProductImageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ProductServiceServer).AddProductImage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ProductService_AddProductImage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProductServiceServer).AddProductImage(ctx, req.(*AddProductImageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ProductService_GetProductImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetProductImagesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ProductServiceServer).GetProductImages(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ProductService_GetProductImages_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProductServiceServer).GetProductImages(ctx, req.(*GetProductImagesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ProductService_DeleteProductImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteProductImageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ProductServiceServer).DeleteProductImage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ProductService_DeleteProductImage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProductServiceServer).DeleteProductImage(ctx, req.(*DeleteProductImageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ProductService_ServiceDesc is the grpc.ServiceDesc for ProductService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -831,18 +727,6 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteCategory",
 			Handler:    _ProductService_DeleteCategory_Handler,
-		},
-		{
-			MethodName: "AddProductImage",
-			Handler:    _ProductService_AddProductImage_Handler,
-		},
-		{
-			MethodName: "GetProductImages",
-			Handler:    _ProductService_GetProductImages_Handler,
-		},
-		{
-			MethodName: "DeleteProductImage",
-			Handler:    _ProductService_DeleteProductImage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

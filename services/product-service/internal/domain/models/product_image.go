@@ -7,9 +7,9 @@ import (
 )
 
 type ProductImage struct {
-	ID        uuid.UUID `json:"id"`
-	ProductID uuid.UUID `json:"product_id"`
-	ImageURL  string    `json:"image_url"`
-	Position  int32     `json:"position"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        uuid.UUID
+	ProductID uuid.UUID
+	ImageURL  string
+	Position  int32
+	CreatedAt time.Time
 }

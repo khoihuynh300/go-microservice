@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -34,8 +35,8 @@ type CreateCategoryParams struct {
 	Slug        string
 	Description pgtype.Text
 	ImageUrl    pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
@@ -71,6 +72,51 @@ WHERE id = $1 AND deleted_at IS NULL
 
 func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error) {
 	row := q.db.QueryRow(ctx, getCategoryByID, id)
+	var i Category
+	err := row.Scan(
+		&i.ID,
+		&i.ParentID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.ImageUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getCategoryByIDForUpdate = `-- name: GetCategoryByIDForUpdate :one
+SELECT id, parent_id, name, slug, description, image_url, created_at, updated_at, deleted_at FROM categories
+WHERE id = $1 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+func (q *Queries) GetCategoryByIDForUpdate(ctx context.Context, id uuid.UUID) (Category, error) {
+	row := q.db.QueryRow(ctx, getCategoryByIDForUpdate, id)
+	var i Category
+	err := row.Scan(
+		&i.ID,
+		&i.ParentID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.ImageUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getCategoryByName = `-- name: GetCategoryByName :one
+SELECT id, parent_id, name, slug, description, image_url, created_at, updated_at, deleted_at FROM categories
+WHERE name = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) GetCategoryByName(ctx context.Context, name string) (Category, error) {
+	row := q.db.QueryRow(ctx, getCategoryByName, name)
 	var i Category
 	err := row.Scan(
 		&i.ID,
@@ -254,7 +300,7 @@ func (q *Queries) ListRootCategories(ctx context.Context) ([]Category, error) {
 	return items, nil
 }
 
-const softDeleteCategory = `-- name: SoftDeleteCategory :execrows
+const softDeleteCategory = `-- name: SoftDeleteCategory :exec
 UPDATE categories SET
     deleted_at = $2,
     updated_at = $3
@@ -264,60 +310,44 @@ WHERE id = $1
 type SoftDeleteCategoryParams struct {
 	ID        uuid.UUID
 	DeletedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	UpdatedAt time.Time
 }
 
-func (q *Queries) SoftDeleteCategory(ctx context.Context, arg SoftDeleteCategoryParams) (int64, error) {
-	result, err := q.db.Exec(ctx, softDeleteCategory, arg.ID, arg.DeletedAt, arg.UpdatedAt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) SoftDeleteCategory(ctx context.Context, arg SoftDeleteCategoryParams) error {
+	_, err := q.db.Exec(ctx, softDeleteCategory, arg.ID, arg.DeletedAt, arg.UpdatedAt)
+	return err
 }
 
-const updateCategory = `-- name: UpdateCategory :one
+const updateCategory = `-- name: UpdateCategory :exec
 UPDATE categories SET
-    name = COALESCE($1, name),
-    slug = COALESCE($2, slug),
-    description = COALESCE($3, description),
-    image_url = COALESCE($4, image_url),
-    parent_id = COALESCE($5, parent_id),
-    updated_at = $6
-WHERE id = $7 AND deleted_at IS NULL
-RETURNING id, parent_id, name, slug, description, image_url, created_at, updated_at, deleted_at
+    name = $2,
+    slug = $3,
+    description = $4,
+    image_url = $5,
+    parent_id = $6,
+    updated_at = $7
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 type UpdateCategoryParams struct {
-	Name        pgtype.Text
-	Slug        pgtype.Text
+	ID          uuid.UUID
+	Name        string
+	Slug        string
 	Description pgtype.Text
 	ImageUrl    pgtype.Text
 	ParentID    pgtype.UUID
-	UpdatedAt   pgtype.Timestamptz
-	ID          uuid.UUID
+	UpdatedAt   time.Time
 }
 
-func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
-	row := q.db.QueryRow(ctx, updateCategory,
+func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) error {
+	_, err := q.db.Exec(ctx, updateCategory,
+		arg.ID,
 		arg.Name,
 		arg.Slug,
 		arg.Description,
 		arg.ImageUrl,
 		arg.ParentID,
 		arg.UpdatedAt,
-		arg.ID,
 	)
-	var i Category
-	err := row.Scan(
-		&i.ID,
-		&i.ParentID,
-		&i.Name,
-		&i.Slug,
-		&i.Description,
-		&i.ImageUrl,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-	)
-	return i, err
+	return err
 }

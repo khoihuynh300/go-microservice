@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sqlc "github.com/khoihuynh300/go-microservice/product-service/internal/db/generated"
+	"github.com/khoihuynh300/go-microservice/product-service/internal/domain/models"
 	"github.com/khoihuynh300/go-microservice/product-service/internal/repository"
 )
 
@@ -27,19 +28,16 @@ func NewProductImageRepository(db *pgxpool.Pool) repository.ProductImageReposito
 
 func (r *productImageRepository) Create(ctx context.Context, productID uuid.UUID, imageURL string, position int32) error {
 	_, err := r.queries(ctx).CreateProductImage(ctx, sqlc.CreateProductImageParams{
+		ID:        uuid.New(),
 		ProductID: productID,
 		ImageUrl:  imageURL,
 		Position:  position,
 	})
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func (r *productImageRepository) GetByProductID(ctx context.Context, productID uuid.UUID) ([]string, error) {
+func (r *productImageRepository) GetByProductID(ctx context.Context, productID uuid.UUID) ([]*models.ProductImage, error) {
 	dbImages, err := r.queries(ctx).GetProductImages(ctx, productID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
@@ -48,28 +46,50 @@ func (r *productImageRepository) GetByProductID(ctx context.Context, productID u
 		return nil, err
 	}
 
-	imageURLs := make([]string, len(dbImages))
-	for i, img := range dbImages {
-		imageURLs[i] = img.ImageUrl
+	return r.ToModels(ctx, dbImages), nil
+}
+
+func (r *productImageRepository) GetByProductIDForUpdate(ctx context.Context, productID uuid.UUID) ([]*models.ProductImage, error) {
+	dbImages, err := r.queries(ctx).GetProductImagesForUpdate(ctx, productID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
-	return imageURLs, nil
+	return r.ToModels(ctx, dbImages), nil
+}
+
+func (r *productImageRepository) UpdatePosition(ctx context.Context, imageID uuid.UUID, position int32) error {
+	return r.queries(ctx).UpdateImagePosition(ctx, sqlc.UpdateImagePositionParams{
+		ID:       imageID,
+		Position: position,
+	})
 }
 
 func (r *productImageRepository) Delete(ctx context.Context, productID, imageID uuid.UUID) error {
-	_, err := r.queries(ctx).DeleteProductImage(ctx, imageID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.queries(ctx).DeleteProductImage(ctx, imageID)
 }
 
 func (r *productImageRepository) DeleteAllByProductID(ctx context.Context, productID uuid.UUID) error {
-	_, err := r.queries(ctx).DeleteAllProductImages(ctx, productID)
-	if err != nil {
-		return err
+	return r.queries(ctx).DeleteAllProductImages(ctx, productID)
+}
+
+func (r *productImageRepository) ToModels(
+	ctx context.Context,
+	dbImages []sqlc.ProductImage,
+) []*models.ProductImage {
+	images := make([]*models.ProductImage, len(dbImages))
+	for i, img := range dbImages {
+		images[i] = &models.ProductImage{
+			ID:        img.ID,
+			ProductID: img.ProductID,
+			ImageURL:  img.ImageUrl,
+			Position:  img.Position,
+			CreatedAt: img.CreatedAt.Time,
+		}
 	}
 
-	return nil
+	return images
 }

@@ -37,10 +37,10 @@ func (r *categoryRepository) Create(ctx context.Context, category *models.Catego
 		ParentID:    convert.PtrToUUID(category.ParentID),
 		Name:        category.Name,
 		Slug:        category.Slug,
-		Description: pgtype.Text{String: category.Description, Valid: category.Description != ""},
-		ImageUrl:    pgtype.Text{String: category.ImageURL, Valid: category.ImageURL != ""},
-		CreatedAt:   pgtype.Timestamptz{Time: now, Valid: true},
-		UpdatedAt:   pgtype.Timestamptz{Time: now, Valid: true},
+		Description: pgtype.Text{String: category.Description, Valid: true},
+		ImageUrl:    convert.PtrToText(category.ImageURL),
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	})
 
 	if err != nil {
@@ -48,13 +48,37 @@ func (r *categoryRepository) Create(ctx context.Context, category *models.Catego
 	}
 
 	category.ID = dbCategory.ID
-	category.CreatedAt = dbCategory.CreatedAt.Time
-	category.UpdatedAt = dbCategory.UpdatedAt.Time
+	category.CreatedAt = dbCategory.CreatedAt
+	category.UpdatedAt = dbCategory.UpdatedAt
 	return nil
 }
 
 func (r *categoryRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Category, error) {
 	dbCategory, err := r.queries(ctx).GetCategoryByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return r.toModel(&dbCategory), nil
+}
+
+func (r *categoryRepository) GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*models.Category, error) {
+	dbCategory, err := r.queries(ctx).GetCategoryByIDForUpdate(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return r.toModel(&dbCategory), nil
+}
+
+func (r *categoryRepository) GetByName(ctx context.Context, name string) (*models.Category, error) {
+	dbCategory, err := r.queries(ctx).GetCategoryByName(ctx, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -122,37 +146,24 @@ func (r *categoryRepository) ListChildren(ctx context.Context, parentID uuid.UUI
 func (r *categoryRepository) Update(ctx context.Context, category *models.Category) error {
 	now := time.Now()
 
-	_, err := r.queries(ctx).UpdateCategory(ctx, sqlc.UpdateCategoryParams{
-		Name:        pgtype.Text{String: category.Name, Valid: true},
-		Slug:        pgtype.Text{String: category.Slug, Valid: true},
-		Description: pgtype.Text{String: category.Description, Valid: category.Description != ""},
-		ImageUrl:    pgtype.Text{String: category.ImageURL, Valid: category.ImageURL != ""},
+	return r.queries(ctx).UpdateCategory(ctx, sqlc.UpdateCategoryParams{
+		Name:        category.Name,
+		Slug:        category.Slug,
+		Description: pgtype.Text{String: category.Description, Valid: true},
+		ImageUrl:    convert.PtrToText(category.ImageURL),
 		ParentID:    convert.PtrToUUID(category.ParentID),
-		UpdatedAt:   pgtype.Timestamptz{Time: now, Valid: true},
+		UpdatedAt:   now,
 		ID:          category.ID,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (r *categoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *categoryRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	now := time.Now()
 
-	_, err := r.queries(ctx).SoftDeleteCategory(ctx, sqlc.SoftDeleteCategoryParams{
+	return r.queries(ctx).SoftDeleteCategory(ctx, sqlc.SoftDeleteCategoryParams{
 		ID:        id,
 		DeletedAt: pgtype.Timestamptz{Time: now, Valid: true},
-		UpdatedAt: pgtype.Timestamptz{Time: now, Valid: true},
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *categoryRepository) toModel(dbCategory *sqlc.Category) *models.Category {
@@ -162,8 +173,8 @@ func (r *categoryRepository) toModel(dbCategory *sqlc.Category) *models.Category
 		Name:        dbCategory.Name,
 		Slug:        dbCategory.Slug,
 		Description: dbCategory.Description.String,
-		ImageURL:    dbCategory.ImageUrl.String,
-		CreatedAt:   dbCategory.CreatedAt.Time,
-		UpdatedAt:   dbCategory.UpdatedAt.Time,
+		ImageURL:    convert.PgTextToPtr(dbCategory.ImageUrl),
+		CreatedAt:   dbCategory.CreatedAt,
+		UpdatedAt:   dbCategory.UpdatedAt,
 	}
 }

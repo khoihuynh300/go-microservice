@@ -33,6 +33,7 @@ type PresignedUploadInput struct {
 	Filename    string
 	ContentType string
 	Folder      string
+	id          string
 	ExpiresIn   time.Duration
 }
 

@@ -13,4 +13,5 @@ type UpdateCategoryDTO struct {
 	Name        *string
 	Slug        *string
 	Description *string
+	ImageURL    *string
 }
